@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
+import 'pages/cai_dat/app_storage.dart';
 import 'main_shell.dart';
 import 'pages/cai_dat/cai_dat_cua_hang/theme_provider.dart';
-import 'package:window_manager/window_manager.dart'; // 1. Import thư viện
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // 2. Khởi tạo windowManager
+  await AppStorage.init();
   await windowManager.ensureInitialized();
 
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(1280, 720), // Kích thước mặc định khi mở app
-    minimumSize: Size(
-      1280,
-      720,
-    ), // KHẮC PHỤC: Kích thước tối thiểu không cho thu nhỏ hơn nữa
+    size: Size(1280, 720),
+    minimumSize: Size(1280, 720),
     center: true,
     title: "RJ Code POS",
   );

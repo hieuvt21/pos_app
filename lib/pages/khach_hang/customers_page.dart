@@ -62,7 +62,7 @@ class _CustomersPageState extends State<CustomersPage> {
         );
       }
     } catch (e) {
-      _logger.e("Lỗi nghiêm trọng khi gọi API lấy dữ liệu", error: e);
+      _logger.e("Lỗi nghiêm trọng khi gọi API lấy dữ liệu: $e");
       _showCustomSnackBar('Lỗi kết nối API: $e', Colors.redAccent);
     } finally {
       if (mounted) {

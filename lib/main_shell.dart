@@ -7,6 +7,7 @@ import 'pages/dich_vu/services_page.dart';
 import 'pages/khach_hang/customers_page.dart';
 import 'pages/bao_cao/reports_page.dart';
 import 'pages/cai_dat/settings_page.dart';
+import 'pages/cai_dat/cai_dat_cua_hang/theme_provider.dart'; // Import provider để xử lý sự kiện chuyển theme
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -33,7 +34,6 @@ class _MainShellState extends State<MainShell> {
     {'title': 'Cài đặt', 'icon': Icons.settings_suggest_rounded},
   ];
 
-  // HÀM ĐIỀU HƯỚNG TRANG: Chỉ định hiển thị file tương ứng theo vị trí click
   Widget _buildPageContent() {
     switch (selectedIndex) {
       case 0:
@@ -59,13 +59,15 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final dynamicThemeColor = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final dynamicThemeColor = theme.colorScheme.primary;
+    final isDark = AppThemeProvider().isDarkMode;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surface,
       body: Row(
         children: [
-          // ================= SIDEBAR TRẮNG PHẲNG KHÔNG ĐƯỜNG KẺ =================
+          // ================= SIDEBAR TRẮNG PHẲNG / TỐI PHẲNG =================
           MouseRegion(
             onEnter: (_) => setState(() => isSidebarExpanded = true),
             onExit: (_) => setState(() => isSidebarExpanded = false),
@@ -73,11 +75,10 @@ class _MainShellState extends State<MainShell> {
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               width: isSidebarExpanded ? kExpandedWidth : kCollapsedWidth,
-              decoration: const BoxDecoration(color: Colors.white),
+              decoration: BoxDecoration(color: theme.colorScheme.surface),
               clipBehavior: Clip.hardEdge,
               child: Column(
                 children: [
-                  // Logo hệ thống POS
                   SizedBox(
                     height: 65,
                     child: OverflowBox(
@@ -89,18 +90,19 @@ class _MainShellState extends State<MainShell> {
                           children: [
                             Icon(
                               Icons.storefront_rounded,
-                              color:
-                                  dynamicThemeColor, // Thay đổi linh hoạt theo màu theme
+                              color: dynamicThemeColor,
                               size: 26,
                             ),
                             const SizedBox(width: 12),
                             AnimatedOpacity(
                               opacity: isSidebarExpanded ? 1.0 : 0.0,
                               duration: const Duration(milliseconds: 150),
-                              child: const Text(
+                              child: Text(
                                 "RJ POS",
                                 style: TextStyle(
-                                  color: Color(0xFF1E293B),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1E293B),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
                                 ),
@@ -114,13 +116,12 @@ class _MainShellState extends State<MainShell> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // Danh sách Menu bên trái điều hướng linh hoạt
                   Expanded(
                     child: ListView.builder(
                       itemCount: menuItems.length,
                       padding: EdgeInsets.zero,
                       itemBuilder: (context, index) =>
-                          _buildSidebarItem(index, dynamicThemeColor),
+                          _buildSidebarItem(index, dynamicThemeColor, isDark),
                     ),
                   ),
                 ],
@@ -128,7 +129,7 @@ class _MainShellState extends State<MainShell> {
             ),
           ),
 
-          // ================= PHẦN NỘI DUNG LIỀN MẠCH (HEADER + CONTENT) =================
+          // ================= PHẦN NỘI DUNG LIỀN MẠCH =================
           Expanded(
             child: Column(
               children: [
@@ -136,23 +137,32 @@ class _MainShellState extends State<MainShell> {
                 Container(
                   height: 65,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  color: Colors.white,
+                  color: theme.colorScheme.surface,
                   child: Row(
                     children: [
                       Text(
                         menuItems[selectedIndex]['title'].toUpperCase(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF0F172A),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
                         ),
                       ),
                       const Spacer(),
+                      // ĐỔI ICON & SỰ KIỆN TẠI ĐÂY
                       IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.dark_mode_outlined,
-                          color: Color(0xFF64748B),
+                        onPressed: () {
+                          AppThemeProvider().toggleDarkMode();
+                        },
+                        icon: Icon(
+                          isDark
+                              ? Icons.light_mode_rounded
+                              : Icons.dark_mode_outlined,
+                          color: isDark
+                              ? Colors.amber
+                              : const Color(0xFF64748B),
                         ),
                       ),
                       IconButton(
@@ -164,8 +174,7 @@ class _MainShellState extends State<MainShell> {
                       ),
                       const SizedBox(width: 12),
                       CircleAvatar(
-                        backgroundColor:
-                            dynamicThemeColor, // Vòng tròn đại diện thay đổi màu theo cài đặt
+                        backgroundColor: dynamicThemeColor,
                         radius: 16,
                         child: const Text(
                           "RJ",
@@ -182,7 +191,10 @@ class _MainShellState extends State<MainShell> {
                 // 2. VÙNG NỘI DUNG TRANG ĐỘNG
                 Expanded(
                   child: Container(
-                    color: const Color(0xFFF8FAFC),
+                    // Màu nền động thay đổi nhẹ theo chế độ sáng / tối
+                    color: isDark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFF8FAFC),
                     child: _buildPageContent(),
                   ),
                 ),
@@ -194,8 +206,7 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  /// Khối Widget con dựng giao diện cho từng dòng nút chọn trên thanh điều hướng Sidebar
-  Widget _buildSidebarItem(int index, Color activeThemeColor) {
+  Widget _buildSidebarItem(int index, Color activeThemeColor, bool isDark) {
     bool isSelected = selectedIndex == index;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -205,9 +216,7 @@ class _MainShellState extends State<MainShell> {
         child: Container(
           height: 46,
           decoration: BoxDecoration(
-            color: isSelected
-                ? activeThemeColor
-                : Colors.transparent, // Highlight màu nền menu theo theme
+            color: isSelected ? activeThemeColor : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: ClipRect(
@@ -232,7 +241,9 @@ class _MainShellState extends State<MainShell> {
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white
-                              : const Color(0xFF334155),
+                              : (isDark
+                                    ? const Color(0xFFCBD5E1)
+                                    : const Color(0xFF334155)),
                           fontWeight: isSelected
                               ? FontWeight.bold
                               : FontWeight.w500,

@@ -25,33 +25,51 @@ class AppThemeProvider extends ChangeNotifier {
   AppThemeMode _currentTheme = AppThemeMode.indigo;
   AppThemeMode get currentTheme => _currentTheme;
 
-  /// Hàm thay đổi chủ đề và thông báo vẽ lại giao diện tức thì cho toàn bộ các trang
+  // Trạng thái chế độ tối (Mặc định là Sáng)
+  bool _isDarkMode = false;
+  bool get isDarkMode => _isDarkMode;
+
+  /// Hàm thay đổi chủ đề màu sắc
   void changeTheme(AppThemeMode newTheme) {
     if (_currentTheme != newTheme) {
       _currentTheme = newTheme;
-      notifyListeners(); // Kích hoạt làm mới toàn bộ widget đang lắng nghe
+      notifyListeners();
     }
   }
 
-  /// Hàm sinh dữ liệu ThemeData chuẩn Material 3 dựa theo màu chủ đạo đã chọn
+  /// Hàm bật/tắt chế độ tối (Dark Mode)
+  void toggleDarkMode() {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners(); // Kích hoạt làm mới giao diện lập tức
+  }
+
+  /// Hàm sinh dữ liệu ThemeData chuẩn Material 3 dựa theo màu chủ đạo và chế độ sáng/tối
   ThemeData getThemeData() {
     return ThemeData(
       useMaterial3: true,
+      brightness: _isDarkMode ? Brightness.dark : Brightness.light,
       colorScheme: ColorScheme.fromSeed(
         seedColor: _currentTheme.color,
         primary: _currentTheme.color,
-        surface: Colors.white,
+        brightness: _isDarkMode ? Brightness.dark : Brightness.light,
+        // Nếu là chế độ tối, chuyển nền sang màu tối, ngược lại giữ màu trắng phẳng
+        surface: _isDarkMode ? const Color(0xFF0F172A) : Colors.white,
       ),
       // Cấu hình chung cho toàn bộ Input/TextField trong app
       inputDecorationTheme: InputDecorationTheme(
-        fillColor: Colors.white,
+        fillColor: _isDarkMode ? const Color(0xFF1E293B) : Colors.white,
         filled: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 12,
         ),
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          borderSide: BorderSide(
+            color: _isDarkMode
+                ? const Color(0xFF334155)
+                : const Color(0xFFE2E8F0),
+            width: 1,
+          ),
           borderRadius: BorderRadius.circular(8),
         ),
         focusedBorder: OutlineInputBorder(
