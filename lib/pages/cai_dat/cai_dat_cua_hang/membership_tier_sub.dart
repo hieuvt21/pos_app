@@ -42,7 +42,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
   // Cấu trúc danh sách quản lý theo khoảng (Từ -> Đến) cùng hệ thống Icon định danh
   final List<Map<String, dynamic>> _membershipTiers = [
     {
-      'tier': 'Hạng Bạc (Silver)',
+      'tier': 'Bạc',
       'icon': Icons.stars_rounded,
       'iconColor': const Color(0xFF94A3B8),
       'from': '5,000,000',
@@ -50,7 +50,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
       'discount': '2%',
     },
     {
-      'tier': 'Hạng Vàng (Gold)',
+      'tier': 'Vàng',
       'icon': Icons.stars_rounded,
       'iconColor': const Color(0xFFEAB308),
       'from': '15,000,000',
@@ -58,7 +58,23 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
       'discount': '5%',
     },
     {
-      'tier': 'Hạng Kim Cương (Platinum)',
+      'tier': 'Bạch kim',
+      'icon': Icons.stars_rounded,
+      'iconColor': const Color(0xFFEAB308),
+      'from': '15,000,000',
+      'to': '30,000,000',
+      'discount': '5%',
+    },
+    {
+      'tier': 'Kim Cương',
+      'icon': Icons.stars_rounded,
+      'iconColor': const Color(0xFF06B6D4),
+      'from': '30,000,000',
+      'to': 'Trở lên',
+      'discount': '10%',
+    },
+    {
+      'tier': 'VIP',
       'icon': Icons.stars_rounded,
       'iconColor': const Color(0xFF06B6D4),
       'from': '30,000,000',
@@ -316,12 +332,9 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                             ),
                           ),
                           children: [
-                            _buildTableCell(
-                              'TÊN BẬC THÀNH VIÊN',
-                              isHeader: true,
-                            ),
-                            _buildTableCell('TỪ MỨC (VNĐ)', isHeader: true),
-                            _buildTableCell('ĐẾN MỨC (VNĐ)', isHeader: true),
+                            _buildTableCell('HẠNG THÀNH VIÊN', isHeader: true),
+                            _buildTableCell('TỪ (VNĐ)', isHeader: true),
+                            _buildTableCell('ĐẾN (VNĐ)', isHeader: true),
                             _buildTableCell('CHIẾT KHẤU', isHeader: true),
                             _buildTableCell('HÀNH ĐỘNG', isHeader: true),
                           ],
@@ -454,7 +467,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                                   ),
                                   SizedBox(width: 10),
                                   Text(
-                                    'Đã cập nhật cấu hình hạn mức nâng hạng thành viên thành công!',
+                                    'Đã cập nhật cấu hình hạng thành viên thành công!',
                                   ),
                                 ],
                               ),
