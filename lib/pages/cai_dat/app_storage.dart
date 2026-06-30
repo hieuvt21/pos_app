@@ -1,13 +1,21 @@
-import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Lightweight in-memory fallback for SharedPreferences to avoid a hard
-/// dependency on the shared_preferences package in environments where it's
-/// not available. The API mirrors only what this app uses.
 class AppStorage {
-  static final Map<String, Object> _store = {};
+  static late final SharedPreferences _prefs;
 
-  /// No-op init to keep the same call-site usage as before.
-  static Future<void> init() async {}
+  /// Hàm khởi tạo tổng - Chỉ chạy duy nhất 1 lần khi ứng dụng vừa mở lên
+  static Future<void> init() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
+
+  // ==========================================
+  // 0. HÀM DÙNG CHUNG (GENERIC STRING STORAGE)
+  //    Dùng cho: jwt_token, user_name, v.v.
+  // ==========================================
+  static String? getString(String key) => _prefs.getString(key);
+
+  static Future<void> setRawString(String key, String value) async =>
+      await _prefs.setString(key, value);
 
   // ==========================================
   // 1. CẤU HÌNH HẠNG THÀNH VIÊN (MEMBERSHIP)
@@ -15,23 +23,21 @@ class AppStorage {
   static const String _kMembershipTiers = 'membership_tiers_data';
   static const String _kTierDiscountEnabled = 'is_tier_discount_enabled';
 
-  static Future<void> saveMembershipTiers(String jsonStr) async {
-    _store[_kMembershipTiers] = jsonStr;
-  }
+  static Future<void> saveMembershipTiers(String jsonStr) async =>
+      await _prefs.setString(_kMembershipTiers, jsonStr);
 
-  static String? getMembershipTiers() => _store[_kMembershipTiers] as String?;
+  static String? getMembershipTiers() => _prefs.getString(_kMembershipTiers);
 
-  static Future<void> saveTierDiscountStatus(bool enabled) async {
-    _store[_kTierDiscountEnabled] = enabled;
-  }
+  static Future<void> saveTierDiscountStatus(bool enabled) async =>
+      await _prefs.setBool(_kTierDiscountEnabled, enabled);
 
   static bool getTierDiscountStatus() =>
-      (_store[_kTierDiscountEnabled] as bool?) ?? false;
+      _prefs.getBool(_kTierDiscountEnabled) ?? false;
 
   // ==========================================
   // 2. NƠI THÊM CÁC CÀI ĐẶT KHÁC SAU NÀY (VÍ DỤ)
   // ==========================================
   // static const String _kStoreName = 'store_name';
-  // static Future<void> saveStoreName(String name) async => _store[_kStoreName] = name;
-  // static String getStoreName() => _store[_kStoreName] as String? ?? 'Tên cửa hàng mặc định';
+  // static Future<void> saveStoreName(String name) async => await _prefs.setString(_kStoreName, name);
+  // static String getStoreName() => _prefs.getString(_kStoreName) ?? 'Tên cửa hàng mặc định';
 }

@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:window_manager/window_manager.dart';
-import 'main_shell.dart';
 import 'pages/cai_dat/app_storage.dart';
+import 'main_shell.dart';
 import 'pages/cai_dat/cai_dat_cua_hang/theme_provider.dart';
 import 'pages/login_page.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
-  // 1. Đảm bảo Flutter Core được kích hoạt đầu tiên
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 2. Khởi tạo Trình quản lý cửa sổ hiển thị Desktop ngay lập tức để tránh lỗi Treo OS
+  await AppStorage.init();
   await windowManager.ensureInitialized();
 
   WindowOptions windowOptions = const WindowOptions(
@@ -20,23 +17,17 @@ void main() async {
     title: "RJ Code POS",
   );
 
-  // Hiển thị cửa sổ Windows lên trước để người dùng thấy ứng dụng phản hồi nhanh
-  await windowManager.waitUntilReadyToShow(windowOptions, () async {
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
   });
 
-  // 3. SAU KHI CỬA SỔ HIỆN LÊN: Khởi tạo bộ nhớ ổ đĩa AppStorage của bạn
-  await AppStorage.init();
-
-  // 4. Đọc token từ bộ nhớ để quyết định Route xuất phát ban đầu
-  final prefs = await SharedPreferences.getInstance();
-  final String? token = prefs.getString('jwt_token');
+  // Đọc token đã lưu để quyết định màn hình xuất phát ban đầu
+  final String? token = AppStorage.getString('jwt_token');
   final String initialRoute = (token != null && token.isNotEmpty)
       ? '/home'
       : '/login';
 
-  // 5. Khởi chạy cây Widget chính của ứng dụng
   runApp(ModernPOSApp(initialRoute: initialRoute));
 }
 
@@ -53,15 +44,11 @@ class ModernPOSApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'RJ Code POS',
-          theme: AppThemeProvider()
-              .getThemeData(), // Nạp mượt mà hệ thống màu động của bạn
-
+          theme: AppThemeProvider().getThemeData(),
           initialRoute: initialRoute,
-
           routes: {
             '/login': (context) => const LoginPage(),
-            '/home': (context) =>
-                const MainShell(), // Điều hướng vào khung menu Sidebar điều hướng chính
+            '/home': (context) => const MainShell(),
           },
         );
       },
