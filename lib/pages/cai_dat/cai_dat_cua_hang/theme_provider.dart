@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../app_storage.dart';
 
 enum AppThemeMode {
   indigo(
@@ -11,7 +12,6 @@ enum AppThemeMode {
   rose(name: 'Hồng Quý Phái', color: Color(0xFFF43F5E), isDark: false),
   orange(name: 'Cam Năng Động', color: Color(0xFFEA580C), isDark: false),
   violet(name: 'Tím Sang Trọng', color: Color(0xFF8B5CF6), isDark: false),
-  // ===== CÁC THEME TỐI MÀU MỚI =====
   midnight(name: 'Xanh Than Đêm (Tối)', color: Color(0xFF3B82F6), isDark: true),
   charcoal(name: 'Xám Than Chì (Tối)', color: Color(0xFF94A3B8), isDark: true),
   wine(name: 'Đỏ Rượu Vang (Tối)', color: Color(0xFFEF4444), isDark: true),
@@ -23,7 +23,7 @@ enum AppThemeMode {
 
   final String name;
   final Color color;
-  final bool isDark; // Theme tự quyết định sáng/tối, không cần toggle riêng
+  final bool isDark;
   const AppThemeMode({
     required this.name,
     required this.color,
@@ -34,17 +34,33 @@ enum AppThemeMode {
 class AppThemeProvider extends ChangeNotifier {
   static final AppThemeProvider _instance = AppThemeProvider._internal();
   factory AppThemeProvider() => _instance;
-  AppThemeProvider._internal();
+  AppThemeProvider._internal() {
+    // KHỞI TẠO BAN ĐẦU: Đọc lại cài đặt cũ từ bộ nhớ máy lên
+    final savedThemeName = AppStorage.getAppTheme();
+    if (savedThemeName != null) {
+      try {
+        _currentTheme = AppThemeMode.values.firstWhere(
+          (e) => e.name == savedThemeName,
+        );
+      } catch (_) {
+        _currentTheme = AppThemeMode.indigo;
+      }
+    }
+  }
 
+  // Mặc định ban đầu nếu bộ nhớ trống
   AppThemeMode _currentTheme = AppThemeMode.indigo;
   AppThemeMode get currentTheme => _currentTheme;
 
-  // Độ tối/sáng được suy ra trực tiếp từ theme đang chọn
   bool get isDarkMode => _currentTheme.isDark;
 
-  void changeTheme(AppThemeMode newTheme) {
+  void changeTheme(AppThemeMode newTheme) async {
     if (_currentTheme != newTheme) {
       _currentTheme = newTheme;
+
+      // LƯU VĨNH VIỄN: Đồng bộ xuống bộ nhớ thiết bị
+      await AppStorage.saveAppTheme(newTheme.name);
+
       notifyListeners();
     }
   }

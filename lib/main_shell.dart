@@ -182,6 +182,7 @@ class _MainShellState extends State<MainShell> {
                       PopupMenuButton<String>(
                         offset: const Offset(0, 45),
                         elevation: 4,
+                        tooltip: '',
                         color: isDark ? const Color(0xFF1E293B) : Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),

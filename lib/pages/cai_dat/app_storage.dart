@@ -34,10 +34,24 @@ class AppStorage {
   static bool getTierDiscountStatus() =>
       _prefs.getBool(_kTierDiscountEnabled) ?? false;
 
+  // 3. CẤU HÌNH HỆ THỐNG (MÁY CHỦ & GIAO DIỆN)
   // ==========================================
-  // 2. NƠI THÊM CÁC CÀI ĐẶT KHÁC SAU NÀY (VÍ DỤ)
-  // ==========================================
-  // static const String _kStoreName = 'store_name';
-  // static Future<void> saveStoreName(String name) async => await _prefs.setString(_kStoreName, name);
-  // static String getStoreName() => _prefs.getString(_kStoreName) ?? 'Tên cửa hàng mặc định';
+  static const String _kServerIp = 'server_ip';
+  static const String _kServerPort = 'server_port';
+  static const String _kAppTheme = 'app_theme_mode';
+
+  // IP Server
+  static Future<void> saveServerIp(String ip) async =>
+      await _prefs.setString(_kServerIp, ip);
+  static String? getServerIp() => _prefs.getString(_kServerIp);
+
+  // Port Server
+  static Future<void> saveServerPort(String port) async =>
+      await _prefs.setString(_kServerPort, port);
+  static String? getServerPort() => _prefs.getString(_kServerPort);
+
+  // Tên Theme (Lưu theo enum name)
+  static Future<void> saveAppTheme(String themeName) async =>
+      await _prefs.setString(_kAppTheme, themeName);
+  static String? getAppTheme() => _prefs.getString(_kAppTheme);
 }
