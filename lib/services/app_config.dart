@@ -7,7 +7,7 @@ class AppConfig extends ChangeNotifier {
   AppConfig._internal();
 
   // SỬA TẠI ĐÂY: Đổi từ '192.168.1.2' sang IP máy chủ hiện tại của bạn
-  String _serverIp = '192.168.0.162';
+  String _serverIp = '192.168.0.150';
   String _serverPort = '5000';
 
   String get serverIp => _serverIp;
