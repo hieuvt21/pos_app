@@ -55,11 +55,13 @@ class _LoginPageState extends State<LoginPage> {
         final data = jsonDecode(response.body);
         String token = data['token'];
         String hoTen = data['user']['hoTen'];
+        String userId = data['user']['id'].toString();
 
         // LƯU TOKEN VÀO BỘ NHỚ MÁY
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', token);
         await prefs.setString('user_name', hoTen);
+        await prefs.setString('user_id', userId);
 
         _showSnackBar(
           'Đăng nhập thành công! Chào $hoTen',
