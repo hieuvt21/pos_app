@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'cai_dat_chung/app_settings_sub.dart';
 import 'cai_dat_cua_hang/membership_tier_sub.dart';
 import 'cai_dat_cua_hang/theme.dart';
+import 'cai_dat_chung/vai_tro_sub.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -56,6 +57,12 @@ class _SettingsPageState extends State<SettingsPage> {
                         title: 'Cấu hình Server',
                         icon: Icons.dns_rounded,
                         activeColor: dynamicThemeColor, // Truyền màu động
+                      ),
+                      _buildSubMenuItem(
+                        id: 'roles',
+                        title: 'Vai trò',
+                        icon: Icons.admin_panel_settings_rounded,
+                        activeColor: dynamicThemeColor,
                       ),
                     ],
                     const SizedBox(height: 8),
@@ -112,6 +119,8 @@ class _SettingsPageState extends State<SettingsPage> {
         return const ThemeSubPage(); // Nạp trang chọn màu chủ đề động ta đã viết
       case 'membership_tier':
         return const MembershipTierSubPage();
+      case 'roles':
+        return const VaiTroSubPage();
       default:
         return const AppSettingsSubPage();
     }
