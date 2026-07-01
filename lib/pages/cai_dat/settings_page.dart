@@ -3,6 +3,7 @@ import 'cai_dat_chung/app_settings_sub.dart';
 import 'cai_dat_cua_hang/membership_tier_sub.dart';
 import 'cai_dat_cua_hang/theme.dart';
 import 'cai_dat_chung/vai_tro_sub.dart';
+import 'cai_dat_chung/tai_khoan_sub.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -64,6 +65,12 @@ class _SettingsPageState extends State<SettingsPage> {
                         icon: Icons.admin_panel_settings_rounded,
                         activeColor: dynamicThemeColor,
                       ),
+                      _buildSubMenuItem(
+                        id: 'accounts',
+                        title: 'Tài khoản',
+                        icon: Icons.people_alt_rounded,
+                        activeColor: dynamicThemeColor,
+                      ),
                     ],
                     const SizedBox(height: 8),
 
@@ -121,6 +128,8 @@ class _SettingsPageState extends State<SettingsPage> {
         return const MembershipTierSubPage();
       case 'roles':
         return const VaiTroSubPage();
+      case 'accounts':
+        return const TaiKhoanSubPage();
       default:
         return const AppSettingsSubPage();
     }
