@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'cai_dat_chung/app_settings_sub.dart';
-import 'cai_dat_cua_hang/membership_tier_sub.dart';
-import 'cai_dat_cua_hang/theme.dart';
 import 'cai_dat_chung/vai_tro_sub.dart';
 import 'cai_dat_chung/tai_khoan_sub.dart';
+
+import 'cai_dat_cua_hang/membership_tier_sub.dart';
+import 'cai_dat_cua_hang/theme.dart';
+import 'cai_dat_cua_hang/thong_tin_cua_hang_sub.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -60,15 +62,15 @@ class _SettingsPageState extends State<SettingsPage> {
                         activeColor: dynamicThemeColor, // Truyền màu động
                       ),
                       _buildSubMenuItem(
-                        id: 'roles',
-                        title: 'Vai trò',
-                        icon: Icons.admin_panel_settings_rounded,
-                        activeColor: dynamicThemeColor,
-                      ),
-                      _buildSubMenuItem(
                         id: 'accounts',
                         title: 'Tài khoản',
                         icon: Icons.people_alt_rounded,
+                        activeColor: dynamicThemeColor,
+                      ),
+                      _buildSubMenuItem(
+                        id: 'roles',
+                        title: 'Vai trò',
+                        icon: Icons.admin_panel_settings_rounded,
                         activeColor: dynamicThemeColor,
                       ),
                     ],
@@ -81,6 +83,12 @@ class _SettingsPageState extends State<SettingsPage> {
                       icon: Icons.store_rounded,
                     ),
                     if (_groupExpansionState['shop'] == true) ...[
+                      _buildSubMenuItem(
+                        id: 'shop_info',
+                        title: 'Thông tin cửa hàng',
+                        icon: Icons.info_outline_rounded,
+                        activeColor: dynamicThemeColor,
+                      ),
                       _buildSubMenuItem(
                         id: 'theme_settings',
                         title: 'Giao diện & Chủ đề',
@@ -126,6 +134,8 @@ class _SettingsPageState extends State<SettingsPage> {
         return const ThemeSubPage(); // Nạp trang chọn màu chủ đề động ta đã viết
       case 'membership_tier':
         return const MembershipTierSubPage();
+      case 'shop_info': // Thêm case này
+        return const ThongTinCuaHangSubPage();
       case 'roles':
         return const VaiTroSubPage();
       case 'accounts':

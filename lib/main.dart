@@ -10,11 +10,12 @@ void main() async {
   await AppStorage.init();
   await windowManager.ensureInitialized();
 
-  WindowOptions windowOptions = const WindowOptions(
-    size: Size(1280, 720),
-    minimumSize: Size(1280, 720),
+  final String appTitle = AppStorage.getAppName();
+  WindowOptions windowOptions = WindowOptions(
+    size: const Size(1280, 720),
+    minimumSize: const Size(1280, 720),
     center: true,
-    title: "RJ Code POS",
+    title: appTitle,
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {
@@ -43,7 +44,7 @@ class ModernPOSApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'RJ Code POS',
+          title: AppStorage.getAppName(),
           theme: AppThemeProvider().getThemeData(),
           initialRoute: initialRoute,
           routes: {

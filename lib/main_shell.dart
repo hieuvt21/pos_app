@@ -42,6 +42,34 @@ class _MainShellState extends State<MainShell> {
     {'title': 'Cài đặt', 'icon': Icons.settings_suggest_rounded},
   ];
 
+  // Hàm helper chuyển đổi chuỗi lưu trong AppStorage thành IconData tương ứng cho Sidebar
+  IconData _getWidgetIcon(String iconName) {
+    switch (iconName) {
+      case 'store_rounded':
+        return Icons.store_rounded;
+      case 'restaurant_rounded':
+        return Icons.restaurant_rounded;
+      case 'coffee_rounded':
+        return Icons.coffee_rounded;
+      case 'checkroom_rounded':
+        return Icons.checkroom_rounded;
+      case 'spa_rounded':
+        return Icons.spa_rounded;
+      case 'local_pharmacy_rounded':
+        return Icons.local_pharmacy_rounded;
+      case 'computer_rounded':
+        return Icons.computer_rounded;
+      case 'build_rounded':
+        return Icons.build_rounded;
+      case 'fitness_center_rounded':
+        return Icons.fitness_center_rounded;
+      case 'star_rounded':
+        return Icons.star_rounded;
+      default:
+        return Icons.storefront_rounded;
+    }
+  }
+
   Widget _buildPageContent() {
     switch (selectedIndex) {
       case 0:
@@ -96,8 +124,9 @@ class _MainShellState extends State<MainShell> {
                         padding: const EdgeInsets.symmetric(horizontal: 22),
                         child: Row(
                           children: [
+                            // Sử dụng icon động từ cấu hình cài đặt cửa hàng
                             Icon(
-                              Icons.storefront_rounded,
+                              _getWidgetIcon(AppStorage.getWidgetIcon()),
                               color: dynamicThemeColor,
                               size: 26,
                             ),
@@ -106,7 +135,8 @@ class _MainShellState extends State<MainShell> {
                               opacity: isSidebarExpanded ? 1.0 : 0.0,
                               duration: const Duration(milliseconds: 150),
                               child: Text(
-                                "RJ POS",
+                                // Sử dụng tiêu đề widget động từ cấu hình cài đặt cửa hàng
+                                AppStorage.getWidgetTitle(),
                                 style: TextStyle(
                                   color: isDark
                                       ? Colors.white
@@ -160,7 +190,6 @@ class _MainShellState extends State<MainShell> {
                       ),
                       const Spacer(),
 
-                      // ĐỔI ICON & SỰ KIỆN TẠI ĐÂY
                       IconButton(
                         onPressed: () {},
                         icon: const Icon(
@@ -297,7 +326,6 @@ class _MainShellState extends State<MainShell> {
                 // 2. VÙNG NỘI DUNG TRANG ĐỘNG
                 Expanded(
                   child: Container(
-                    // Màu nền động thay đổi nhẹ theo chế độ sáng / tối
                     color: isDark
                         ? const Color(0xFF1E293B)
                         : const Color(0xFFF8FAFC),
@@ -324,7 +352,6 @@ class _MainShellState extends State<MainShell> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          // Lắng nghe sự thay đổi của ô mật khẩu mới để hiện/ẩn ô mật khẩu cũ
           bool hasNewPassword = passwordController.text.trim().isNotEmpty;
 
           return AlertDialog(
@@ -383,7 +410,6 @@ class _MainShellState extends State<MainShell> {
                       color: isDark ? Colors.white : Colors.black,
                     ),
                     onChanged: (value) {
-                      // Cập nhật lại UI trong Dialog khi nhập mật khẩu mới
                       setDialogState(() {});
                     },
                     decoration: _dialogInputDecoration(
@@ -393,7 +419,6 @@ class _MainShellState extends State<MainShell> {
                     ),
                   ),
 
-                  // Chỉ hiển thị ô nhập Mật khẩu hiện tại khi đã nhập Mật khẩu mới
                   if (hasNewPassword) ...[
                     const SizedBox(height: 16),
                     Text(
@@ -442,7 +467,6 @@ class _MainShellState extends State<MainShell> {
 
                   if (newName.isEmpty || userId == null) return;
 
-                  // Kiểm tra nếu người dùng điền mật khẩu mới nhưng bỏ trống mật khẩu cũ
                   if (newPass.isNotEmpty &&
                       oldPasswordController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -458,7 +482,6 @@ class _MainShellState extends State<MainShell> {
                   }
 
                   try {
-                    // 1. Cập nhật họ tên lên server
                     final resName = await http.put(
                       Uri.parse(
                         AppConfig().buildUrl('api/auth/update-profile'),
@@ -477,7 +500,6 @@ class _MainShellState extends State<MainShell> {
                       );
                     }
 
-                    // 2. Nếu có nhập mật khẩu mới -> gọi API đổi mật khẩu
                     if (newPass.isNotEmpty) {
                       final resPass = await http.put(
                         Uri.parse(
@@ -498,7 +520,6 @@ class _MainShellState extends State<MainShell> {
                       }
                     }
 
-                    // 3. Lưu lại local để hiển thị ngay
                     await AppStorage.setRawString('user_name', newName);
                     setState(() => userName = newName);
 
