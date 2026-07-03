@@ -22,32 +22,32 @@ class _CustomersPageState extends State<CustomersPage> {
     {
       'id': 'silver',
       'tier': 'Hạng Bạc (Silver)',
-      'threshold': '5,000,000',
-      'discount': '2%',
+      'threshold': '1,000,000',
+      'discount': '0%',
     },
     {
       'id': 'gold',
       'tier': 'Hạng Vàng (Gold)',
-      'threshold': '15,000,000',
-      'discount': '5%',
+      'threshold': '3,000,000',
+      'discount': '0%',
     },
     {
       'id': 'platinum_new',
       'tier': 'Hạng Bạch Kim (Platinum)',
-      'threshold': '30,000,000',
-      'discount': '7%',
+      'threshold': '10,000,000',
+      'discount': '0%',
     },
     {
       'id': 'diamond',
       'tier': 'Hạng Kim Cương (Diamond)',
       'threshold': '50,000,000',
-      'discount': '10%',
+      'discount': '2%',
     },
     {
       'id': 'vip',
       'tier': 'Hạng VIP',
       'threshold': '100,000,000',
-      'discount': '15%',
+      'discount': '5%',
     },
   ];
   List<Map<String, dynamic>> _membershipTiers = List.from(
@@ -69,7 +69,7 @@ class _CustomersPageState extends State<CustomersPage> {
   String _searchKeyword = '';
   String _sortOption = 'default';
   static const Map<String, String> _sortLabels = {
-    'default': 'Sắp xếp mặc định',
+    'default': 'Mặc định',
     'chi_tieu_desc': 'Chi tiêu nhiều nhất',
     'chi_tieu_asc': 'Chi tiêu thấp nhất',
     'age_asc': 'Theo tuổi (thấp → cao)',
@@ -127,11 +127,16 @@ class _CustomersPageState extends State<CustomersPage> {
         _showCustomSnackBar(
           'Không thể tải danh sách khách hàng từ máy chủ',
           Colors.redAccent,
+          icon: Icons.error_outline_rounded,
         );
       }
     } catch (e) {
       _logger.e("Lỗi nghiêm trọng khi gọi API lấy dữ liệu: $e");
-      _showCustomSnackBar('Lỗi kết nối API: $e', Colors.redAccent);
+      _showCustomSnackBar(
+        'Lỗi kết nối API: $e',
+        Colors.redAccent,
+        icon: Icons.error_outline_rounded,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -157,7 +162,11 @@ class _CustomersPageState extends State<CustomersPage> {
 
   Future<void> _addCustomer() async {
     if (_nameController.text.trim().isEmpty) {
-      _showCustomSnackBar('Vui lòng nhập tên khách hàng', Colors.redAccent);
+      _showCustomSnackBar(
+        'Vui lòng nhập tên khách hàng',
+        Colors.redAccent,
+        icon: Icons.error_outline_rounded,
+      );
       return;
     }
 
@@ -169,7 +178,6 @@ class _CustomersPageState extends State<CustomersPage> {
         ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}"
         : null;
 
-    // Trạng thái mặc định luôn là "1" — do server tự đặt, không cần gửi lên đây.
     Map<String, dynamic> bodyData = {
       "ten": _nameController.text.trim(),
       "sdt": _phoneController.text.trim().isEmpty
@@ -199,7 +207,7 @@ class _CustomersPageState extends State<CustomersPage> {
         _clearForm();
         _showCustomSnackBar(
           'Thêm khách hàng thành công!',
-          const Color(0xFF10B981),
+          Theme.of(context).colorScheme.primary,
         );
         _fetchCustomers();
       } else {
@@ -207,7 +215,11 @@ class _CustomersPageState extends State<CustomersPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      _showCustomSnackBar('Lỗi kết nối API: $e', Colors.redAccent);
+      _showCustomSnackBar(
+        'Lỗi kết nối API: $e',
+        Colors.redAccent,
+        icon: Icons.error_outline_rounded,
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -217,16 +229,28 @@ class _CustomersPageState extends State<CustomersPage> {
     }
   }
 
-  void _showCustomSnackBar(String text, Color backgroundColor) {
+  void _showCustomSnackBar(
+    String text,
+    Color backgroundColor, {
+    IconData icon = Icons.check_circle_rounded,
+  }) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          text,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
         ),
         backgroundColor: backgroundColor,
         behavior: SnackBarBehavior.floating,
@@ -243,7 +267,6 @@ class _CustomersPageState extends State<CustomersPage> {
     _selectedDate = null;
   }
 
-  // ===== TIỆN ÍCH: HẠNG THÀNH VIÊN =====
   num _asNum(dynamic v) {
     if (v is num) return v;
     return num.tryParse(v?.toString() ?? '') ?? 0;
@@ -281,7 +304,7 @@ class _CustomersPageState extends State<CustomersPage> {
 
     for (final tier in sortedTiers) {
       final threshold = _parseThreshold(tier['threshold']);
-      if (chiTieu >= threshold && threshold > 0) {
+      if (chiTieu >= threshold) {
         return {
           'icon': Icons.stars_rounded,
           'color': _tierColor(tier['id'] ?? ''),
@@ -297,7 +320,6 @@ class _CustomersPageState extends State<CustomersPage> {
     };
   }
 
-  // ===== TIỆN ÍCH: TUỔI =====
   int? _calcAge(dynamic customer) {
     final raw = customer['ngay_sinh']?.toString();
     if (raw == null || raw.isEmpty || raw == 'null') return null;
@@ -319,12 +341,11 @@ class _CustomersPageState extends State<CustomersPage> {
     final ageA = _calcAge(a);
     final ageB = _calcAge(b);
     if (ageA == null && ageB == null) return 0;
-    if (ageA == null) return 1; // Khách chưa có ngày sinh luôn đẩy xuống cuối
+    if (ageA == null) return 1;
     if (ageB == null) return -1;
     return ascending ? ageA.compareTo(ageB) : ageB.compareTo(ageA);
   }
 
-  // ===== DANH SÁCH ĐÃ LỌC + SẮP XẾP =====
   List<dynamic> get _displayedList {
     List<dynamic> list = List.from(_customersList);
 
@@ -356,13 +377,12 @@ class _CustomersPageState extends State<CustomersPage> {
         list.sort((a, b) => _compareAge(a, b, ascending: false));
         break;
       default:
-        break; // Giữ nguyên thứ tự mặc định (server trả về theo id giảm dần)
+        break;
     }
 
     return list;
   }
 
-  // ===== SỬA KHÁCH HÀNG =====
   void _showEditCustomerDialog(dynamic customer) {
     final nameController = TextEditingController(text: customer['ten'] ?? '');
     final phoneController = TextEditingController(text: customer['sdt'] ?? '');
@@ -386,7 +406,7 @@ class _CustomersPageState extends State<CustomersPage> {
     showDialog(
       context: context,
       barrierDismissible: !isSubmitting,
-      builder: (context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
@@ -430,8 +450,9 @@ class _CustomersPageState extends State<CustomersPage> {
                       const SizedBox(height: 15),
                       InkWell(
                         onTap: () async {
+                          if (!dialogContext.mounted) return;
                           final picked = await showDatePicker(
-                            context: context,
+                            context: dialogContext,
                             initialDate:
                                 editSelectedDate ?? DateTime(2000, 1, 1),
                             firstDate: DateTime(1930),
@@ -488,6 +509,7 @@ class _CustomersPageState extends State<CustomersPage> {
                             _showCustomSnackBar(
                               'Vui lòng nhập tên khách hàng',
                               Colors.redAccent,
+                              icon: Icons.error_outline_rounded,
                             );
                             return;
                           }
@@ -521,14 +543,13 @@ class _CustomersPageState extends State<CustomersPage> {
                               body: jsonEncode(bodyData),
                             );
 
-                            if (!mounted) return;
+                            if (!mounted || !dialogContext.mounted) return;
 
                             if (response.statusCode == 200) {
-                              if (!dialogContext.mounted) return;
                               Navigator.of(dialogContext).pop();
                               _showCustomSnackBar(
                                 'Cập nhật khách hàng thành công!',
-                                const Color(0xFF10B981),
+                                Theme.of(context).colorScheme.primary,
                               );
                               _fetchCustomers();
                             } else {
@@ -538,12 +559,12 @@ class _CustomersPageState extends State<CustomersPage> {
                               );
                             }
                           } catch (e) {
-                            if (!mounted) return;
-                            if (!dialogContext.mounted) return;
+                            if (!mounted || !dialogContext.mounted) return;
                             setDialogState(() => isSubmitting = false);
                             _showCustomSnackBar(
                               'Lỗi: ${e.toString().replaceAll('Exception: ', '')}',
                               Colors.redAccent,
+                              icon: Icons.error_outline_rounded,
                             );
                           }
                         },
@@ -572,11 +593,10 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
-  // ===== XÓA (MỀM) KHÁCH HÀNG =====
   void _showDeleteConfirm(dynamic customer) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Row(
@@ -605,7 +625,11 @@ class _CustomersPageState extends State<CustomersPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
+            },
             child: const Text(
               'Hủy',
               style: TextStyle(color: Color(0xFF64748B)),
@@ -613,26 +637,30 @@ class _CustomersPageState extends State<CustomersPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
               try {
                 final res = await http.delete(
                   Uri.parse(
                     AppConfig().buildUrl('api/khachhang/${customer['id']}'),
                   ),
                 );
+                if (!mounted) return;
                 if (res.statusCode == 200) {
                   _showCustomSnackBar(
                     'Đã xóa khách hàng "${customer['ten']}"',
-                    const Color(0xFF10B981),
+                    Theme.of(context).colorScheme.primary,
                   );
                   _fetchCustomers();
                 } else {
                   throw Exception(jsonDecode(res.body)['message']);
                 }
               } catch (e) {
+                if (!mounted) return;
                 _showCustomSnackBar(
                   'Lỗi: ${e.toString().replaceAll('Exception: ', '')}',
                   Colors.redAccent,
+                  icon: Icons.error_outline_rounded,
                 );
               }
             },
@@ -653,7 +681,6 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
-  // ===== XEM LỊCH SỬ MUA HÀNG (GIAO DIỆN TẠM, CHỨC NĂNG LÀM SAU) =====
   void _showViewHistoryDialog(dynamic customer) {
     showDialog(
       context: context,
@@ -785,6 +812,24 @@ class _CustomersPageState extends State<CustomersPage> {
           },
         ),
       ),
+    );
+  }
+
+  // Tiện ích để thiết kế Tooltip chung cho Thao tác
+  Widget _buildActionButtonTooltip({
+    required String message,
+    required Widget child,
+  }) {
+    return Tooltip(
+      message: message,
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      textStyle: const TextStyle(color: Colors.white, fontSize: 11),
+      waitDuration: const Duration(milliseconds: 300),
+      child: child,
     );
   }
 
@@ -927,7 +972,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       )
                     : Column(
                         children: [
-                          // 1. THANH TIÊU ĐỀ BẢNG
+                          // 1. THANH TIÊU ĐỀ BẢNG (ĐÃ CĂN TRÁI THEO NỘI DUNG)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               vertical: 14,
@@ -939,34 +984,40 @@ class _CustomersPageState extends State<CustomersPage> {
                                 bottom: BorderSide(color: Color(0xFFE2E8F0)),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
                                 Expanded(
                                   flex: 5,
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(
+                                    padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0,
                                     ),
-                                    child: Text(
-                                      'ID',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E293B),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: const Text(
+                                        'ID',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B),
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                                 Expanded(
-                                  flex: 16,
+                                  flex: 14,
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(
+                                    padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0,
                                     ),
-                                    child: Text(
-                                      'Họ và Tên',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E293B),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: const Text(
+                                        'Tên KH',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -974,14 +1025,53 @@ class _CustomersPageState extends State<CustomersPage> {
                                 Expanded(
                                   flex: 11,
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(
+                                    padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0,
                                     ),
-                                    child: Text(
-                                      'Số điện thoại',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E293B),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: const Text(
+                                        'SĐT',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 21,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0,
+                                    ),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: const Text(
+                                        'Địa Chỉ',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 11,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8.0,
+                                    ),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: const Text(
+                                        'Ngày Sinh',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -989,74 +1079,51 @@ class _CustomersPageState extends State<CustomersPage> {
                                 Expanded(
                                   flex: 18,
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(
+                                    padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0,
                                     ),
-                                    child: Text(
-                                      'Địa Chỉ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E293B),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: const Text(
+                                        'Ghi Chú',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B),
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                                 Expanded(
-                                  flex: 11,
+                                  flex: 6,
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8.0,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4.0,
                                     ),
-                                    child: Text(
-                                      'Ngày Sinh',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E293B),
+                                    child: Center(
+                                      child: const Text(
+                                        'Hạng',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B),
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                                 Expanded(
-                                  flex: 16,
+                                  flex: 9,
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(
+                                    padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0,
                                     ),
-                                    child: Text(
-                                      'Ghi Chú',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E293B),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 13,
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8.0,
-                                    ),
-                                    child: Text(
-                                      'Hạng',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E293B),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 12,
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8.0,
-                                    ),
-                                    child: Text(
-                                      'Thao Tác',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF1E293B),
+                                    child: Center(
+                                      child: const Text(
+                                        'Thao Tác',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1E293B),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -1122,14 +1189,14 @@ class _CustomersPageState extends State<CustomersPage> {
                                       ),
                                       _buildResponsiveCell(
                                         tenValue,
-                                        flex: 16,
+                                        flex: 14,
                                         textColor: const Color(0xFF0F172A),
                                         isBold: true,
                                       ),
                                       _buildResponsiveCell(sdtValue, flex: 11),
                                       _buildResponsiveCell(
                                         diaChiValue,
-                                        flex: 20,
+                                        flex: 21,
                                       ),
                                       _buildResponsiveCell(
                                         displayDate,
@@ -1137,101 +1204,106 @@ class _CustomersPageState extends State<CustomersPage> {
                                       ),
                                       _buildResponsiveCell(
                                         ghiChuValue,
-                                        flex: 16,
+                                        flex: 18,
                                       ),
 
-                                      // Ô Hạng thành viên
                                       Expanded(
-                                        flex: 13,
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8.0,
-                                          ),
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: Tooltip(
-                                              message: tierInfo['label'],
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color: const Color(
-                                                  0xFF1E293B,
-                                                ).withValues(alpha: 0.95),
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              textStyle: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 12,
-                                              ),
-                                              waitDuration: const Duration(
-                                                milliseconds: 200,
-                                              ),
-                                              child: Icon(
-                                                tierInfo['icon'],
-                                                color: tierInfo['color'],
-                                                size: 22,
-                                              ),
+                                        flex: 6,
+                                        child: Center(
+                                          child: Tooltip(
+                                            message: tierInfo['label'],
+                                            padding: const EdgeInsets.all(10),
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                0xFF1E293B,
+                                              ).withValues(alpha: 0.95),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            textStyle: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                            ),
+                                            waitDuration: const Duration(
+                                              milliseconds: 200,
+                                            ),
+                                            child: Icon(
+                                              tierInfo['icon'],
+                                              color: tierInfo['color'],
+                                              size: 22,
                                             ),
                                           ),
                                         ),
                                       ),
 
-                                      // Ô Thao tác
+                                      // Ô THAO TÁC (ĐÃ THÊM TIÊU ĐỀ TOOLTIP CHO CÁC ICON)
                                       Expanded(
-                                        flex: 12,
+                                        flex: 9,
                                         child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8.0,
+                                          padding: const EdgeInsets.only(
+                                            right: 8.0,
                                           ),
                                           child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
                                             children: [
-                                              InkWell(
-                                                onTap: () =>
-                                                    _showViewHistoryDialog(
-                                                      customer,
+                                              _buildActionButtonTooltip(
+                                                message: 'Xem thông tin',
+                                                child: InkWell(
+                                                  onTap: () =>
+                                                      _showViewHistoryDialog(
+                                                        customer,
+                                                      ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.all(4),
+                                                    child: Icon(
+                                                      Icons.visibility_outlined,
+                                                      size: 18,
+                                                      color: Color(0xFF64748B),
                                                     ),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                child: const Padding(
-                                                  padding: EdgeInsets.all(4),
-                                                  child: Icon(
-                                                    Icons.visibility_outlined,
-                                                    size: 18,
-                                                    color: Color(0xFF64748B),
                                                   ),
                                                 ),
                                               ),
                                               const SizedBox(width: 4),
-                                              InkWell(
-                                                onTap: () =>
-                                                    _showEditCustomerDialog(
-                                                      customer,
+                                              _buildActionButtonTooltip(
+                                                message: 'Sửa thông tin',
+                                                child: InkWell(
+                                                  onTap: () =>
+                                                      _showEditCustomerDialog(
+                                                        customer,
+                                                      ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.all(4),
+                                                    child: Icon(
+                                                      Icons.edit_note_rounded,
+                                                      size: 18,
+                                                      color: Colors.grey,
                                                     ),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                child: const Padding(
-                                                  padding: EdgeInsets.all(4),
-                                                  child: Icon(
-                                                    Icons.edit_note_rounded,
-                                                    size: 18,
-                                                    color: Colors.grey,
                                                   ),
                                                 ),
                                               ),
                                               const SizedBox(width: 4),
-                                              InkWell(
-                                                onTap: () => _showDeleteConfirm(
-                                                  customer,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                child: const Padding(
-                                                  padding: EdgeInsets.all(4),
-                                                  child: Icon(
-                                                    Icons
-                                                        .delete_outline_rounded,
-                                                    size: 18,
-                                                    color: Colors.redAccent,
+                                              _buildActionButtonTooltip(
+                                                message: 'Xóa khách hàng',
+                                                child: InkWell(
+                                                  onTap: () =>
+                                                      _showDeleteConfirm(
+                                                        customer,
+                                                      ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  child: const Padding(
+                                                    padding: EdgeInsets.all(4),
+                                                    child: Icon(
+                                                      Icons
+                                                          .delete_outline_rounded,
+                                                      size: 18,
+                                                      color: Colors.redAccent,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -1302,9 +1374,9 @@ class _CustomersPageState extends State<CustomersPage> {
     showDialog(
       context: context,
       barrierDismissible: !_isSubmitLoading,
-      builder: (BuildContext context) {
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (dialogContext, setDialogState) {
             return AlertDialog(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
@@ -1346,7 +1418,8 @@ class _CustomersPageState extends State<CustomersPage> {
                       const SizedBox(height: 15),
                       InkWell(
                         onTap: () async {
-                          await _selectDate(context);
+                          if (!dialogContext.mounted) return;
+                          await _selectDate(dialogContext);
                           setDialogState(() {});
                         },
                         child: InputDecorator(
@@ -1379,7 +1452,9 @@ class _CustomersPageState extends State<CustomersPage> {
                   onPressed: _isSubmitLoading
                       ? null
                       : () {
-                          Navigator.of(context).pop();
+                          if (dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
                           _clearForm();
                         },
                   child: const Text(
