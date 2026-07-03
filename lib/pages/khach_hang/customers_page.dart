@@ -833,6 +833,72 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
+  // ===== KHỐI 3 ICON THAO TÁC (Xem / Sửa / Xóa) =====
+  // TÁCH RIÊNG thành hàm dùng chung cho cả dòng dữ liệu, và bọc bằng
+  // FittedBox(fit: BoxFit.scaleDown) để nhóm icon TỰ CO LẠI khi khoảng
+  // trống bị hẹp đi (ví dụ khi hover mở rộng Sidebar ở main_shell.dart
+  // làm bề ngang bảng khách hàng bị thu hẹp đột ngột), thay vì bị TRÀN
+  // ra ngoài và hiện dòng cảnh báo overflow màu đỏ/vàng của Flutter.
+  Widget _buildActionButtonsRow(dynamic customer) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerRight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          _buildActionButtonTooltip(
+            message: 'Xem thông tin',
+            child: InkWell(
+              onTap: () => _showViewHistoryDialog(customer),
+              borderRadius: BorderRadius.circular(4),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.visibility_outlined,
+                  size: 18,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          _buildActionButtonTooltip(
+            message: 'Sửa thông tin',
+            child: InkWell(
+              onTap: () => _showEditCustomerDialog(customer),
+              borderRadius: BorderRadius.circular(4),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.edit_note_rounded,
+                  size: 18,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          _buildActionButtonTooltip(
+            message: 'Xóa khách hàng',
+            child: InkWell(
+              onTap: () => _showDeleteConfirm(customer),
+              borderRadius: BorderRadius.circular(4),
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  size: 18,
+                  color: Colors.redAccent,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayedList = _displayedList;
@@ -1236,78 +1302,18 @@ class _CustomersPageState extends State<CustomersPage> {
                                         ),
                                       ),
 
-                                      // Ô THAO TÁC (ĐÃ THÊM TIÊU ĐỀ TOOLTIP CHO CÁC ICON)
+                                      // Ô THAO TÁC — bọc FittedBox để nhóm 3
+                                      // icon TỰ CO LẠI khi cột bị hẹp lại
+                                      // (ví dụ khi hover mở Sidebar), thay vì
+                                      // bị tràn ra ngoài gây dòng cảnh báo đỏ.
                                       Expanded(
                                         flex: 9,
                                         child: Padding(
                                           padding: const EdgeInsets.only(
                                             right: 8.0,
                                           ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.end,
-                                            children: [
-                                              _buildActionButtonTooltip(
-                                                message: 'Xem thông tin',
-                                                child: InkWell(
-                                                  onTap: () =>
-                                                      _showViewHistoryDialog(
-                                                        customer,
-                                                      ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                  child: const Padding(
-                                                    padding: EdgeInsets.all(4),
-                                                    child: Icon(
-                                                      Icons.visibility_outlined,
-                                                      size: 18,
-                                                      color: Color(0xFF64748B),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              _buildActionButtonTooltip(
-                                                message: 'Sửa thông tin',
-                                                child: InkWell(
-                                                  onTap: () =>
-                                                      _showEditCustomerDialog(
-                                                        customer,
-                                                      ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                  child: const Padding(
-                                                    padding: EdgeInsets.all(4),
-                                                    child: Icon(
-                                                      Icons.edit_note_rounded,
-                                                      size: 18,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              _buildActionButtonTooltip(
-                                                message: 'Xóa khách hàng',
-                                                child: InkWell(
-                                                  onTap: () =>
-                                                      _showDeleteConfirm(
-                                                        customer,
-                                                      ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                  child: const Padding(
-                                                    padding: EdgeInsets.all(4),
-                                                    child: Icon(
-                                                      Icons
-                                                          .delete_outline_rounded,
-                                                      size: 18,
-                                                      color: Colors.redAccent,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                          child: _buildActionButtonsRow(
+                                            customer,
                                           ),
                                         ),
                                       ),
