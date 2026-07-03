@@ -74,14 +74,13 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
     }).toList();
   }
 
-  void _showSnack(String msg, Color color) {
+  void _showSnack(String msg, [Color? color]) {
     if (!mounted) return;
+    final backgroundColor = color ?? Theme.of(context).colorScheme.primary;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
+        backgroundColor: backgroundColor,
       ),
     );
   }
@@ -149,9 +148,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                         ).copyWith(
                           suffixIcon: IconButton(
                             icon: Icon(
-                              obscure
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                              obscure ? Icons.visibility_off : Icons.visibility,
                               size: 18,
                               color: const Color(0xFF94A3B8),
                             ),
@@ -217,9 +214,12 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                       final password = passController.text.trim();
                       final name = nameController.text.trim();
 
-                      if (username.isEmpty || password.isEmpty || name.isEmpty) {
+                      if (username.isEmpty ||
+                          password.isEmpty ||
+                          name.isEmpty) {
                         setDs(
-                          () => errorText = 'Vui lòng điền đầy đủ thông tin bắt buộc',
+                          () => errorText =
+                              'Vui lòng điền đầy đủ thông tin bắt buộc',
                         );
                         return;
                       }
@@ -247,10 +247,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                           if (context.mounted) Navigator.pop(context);
                           await _fetchAccounts();
                           if (mounted) setState(() {});
-                          _showSnack(
-                            'Đã tạo tài khoản "$username"!',
-                            const Color(0xFF10B981),
-                          );
+                          _showSnack('Đã tạo tài khoản "$username"!');
                         } else {
                           throw Exception(jsonDecode(res.body)['message']);
                         }
@@ -410,9 +407,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                         ).copyWith(
                           suffixIcon: IconButton(
                             icon: Icon(
-                              obscure
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
+                              obscure ? Icons.visibility_off : Icons.visibility,
                               size: 18,
                               color: const Color(0xFF94A3B8),
                             ),
@@ -501,10 +496,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                           if (context.mounted) Navigator.pop(context);
                           await _fetchAccounts();
                           if (mounted) setState(() {});
-                          _showSnack(
-                            'Đã cập nhật tài khoản!',
-                            const Color(0xFF10B981),
-                          );
+                          _showSnack('Đã cập nhật tài khoản!');
                         } else {
                           throw Exception(jsonDecode(res.body)['message']);
                         }
@@ -596,10 +588,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                 if (res.statusCode == 200) {
                   await _fetchAccounts();
                   if (mounted) setState(() {});
-                  _showSnack(
-                    'Đã xóa tài khoản "${account['tenDangNhap']}"',
-                    const Color(0xFF10B981),
-                  );
+                  _showSnack('Đã xóa tài khoản "${account['tenDangNhap']}"');
                 } else {
                   throw Exception(jsonDecode(res.body)['message']);
                 }
@@ -672,9 +661,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
             side: BorderSide(
               color: checked ? themeColor : const Color(0xFFE2E8F0),
             ),
-            onSelected: enabled
-                ? (v) => onChanged(id, v)
-                : null,
+            onSelected: enabled ? (v) => onChanged(id, v) : null,
           );
         }).toList(),
       ),
@@ -955,9 +942,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                                       vertical: 3,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: themeColor.withValues(
-                                        alpha: 0.08,
-                                      ),
+                                      color: themeColor.withValues(alpha: 0.08),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(

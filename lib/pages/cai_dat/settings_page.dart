@@ -6,6 +6,7 @@ import 'cai_dat_chung/tai_khoan_sub.dart';
 import 'cai_dat_cua_hang/membership_tier_sub.dart';
 import 'cai_dat_cua_hang/theme.dart';
 import 'cai_dat_cua_hang/thong_tin_cua_hang_sub.dart';
+import 'cai_dat_cua_hang/zalo_oa_sub.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -101,6 +102,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         icon: Icons.card_membership_rounded,
                         activeColor: dynamicThemeColor, // Truyền màu động
                       ),
+                      _buildSubMenuItem(
+                        // <-- THÊM khối này
+                        id: 'zalo_oa',
+                        title: 'Kết nối Zalo OA',
+                        icon: Icons.chat_bubble_rounded,
+                        activeColor: dynamicThemeColor,
+                      ),
                     ],
                   ],
                 ),
@@ -134,7 +142,9 @@ class _SettingsPageState extends State<SettingsPage> {
         return const ThemeSubPage(); // Nạp trang chọn màu chủ đề động ta đã viết
       case 'membership_tier':
         return const MembershipTierSubPage();
-      case 'shop_info': // Thêm case này
+      case 'zalo_oa':
+        return const ZaloOaSubPage();
+      case 'shop_info':
         return const ThongTinCuaHangSubPage();
       case 'roles':
         return const VaiTroSubPage();

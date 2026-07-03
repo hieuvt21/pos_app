@@ -135,11 +135,11 @@ class _ThongTinCuaHangSubPageState extends State<ThongTinCuaHangSubPage> {
     await windowManager.setTitle(_appNameController.text.trim());
 
     if (!mounted) return;
+    final dynamicThemeColor = Theme.of(context).colorScheme.primary;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã cập nhật dữ liệu hệ thống thành công!'),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
+      SnackBar(
+        content: const Text('Đã cập nhật dữ liệu hệ thống thành công!'),
+        backgroundColor: dynamicThemeColor,
       ),
     );
   }
