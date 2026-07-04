@@ -57,6 +57,21 @@ class ThousandsSeparatorInputFormatter extends TextInputFormatter {
 /// Dùng để lấy giá trị "sạch" trước khi gửi lên API/lưu DB.
 /// Áp dụng được cho cả SĐT ("0912.345.678" -> "0912345678")
 /// lẫn số tiền ("6,000,000" -> "6000000").
+String formatPhoneDisplay(String? raw) {
+  if (raw == null) return '-';
+
+  final digits = raw.toString().replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.isEmpty) return '-';
+
+  final limited = digits.length > 10 ? digits.substring(0, 10) : digits;
+  if (limited.length <= 4) return limited;
+  if (limited.length <= 7) {
+    return '${limited.substring(0, 4)}.${limited.substring(4)}';
+  }
+
+  return '${limited.substring(0, 4)}.${limited.substring(4, 7)}.${limited.substring(7)}';
+}
+
 String stripNonDigits(String formattedText) {
   return formattedText.replaceAll(RegExp(r'[^0-9]'), '');
 }

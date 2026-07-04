@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:logger/logger.dart';
 import '/services/app_config.dart';
 import '../cai_dat/app_storage.dart';
+import '../utils/input_formatters.dart';
 
 class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});
@@ -180,9 +181,9 @@ class _CustomersPageState extends State<CustomersPage> {
 
     Map<String, dynamic> bodyData = {
       "ten": _nameController.text.trim(),
-      "sdt": _phoneController.text.trim().isEmpty
+      "sdt": stripNonDigits(_phoneController.text).isEmpty
           ? null
-          : _phoneController.text.trim(),
+          : stripNonDigits(_phoneController.text),
       "dia_chi": _addressController.text.trim().isEmpty
           ? null
           : _addressController.text.trim(),
@@ -385,7 +386,10 @@ class _CustomersPageState extends State<CustomersPage> {
 
   void _showEditCustomerDialog(dynamic customer) {
     final nameController = TextEditingController(text: customer['ten'] ?? '');
-    final phoneController = TextEditingController(text: customer['sdt'] ?? '');
+    final initialPhone = formatPhoneDisplay(customer['sdt']) == '-'
+        ? ''
+        : formatPhoneDisplay(customer['sdt']);
+    final phoneController = TextEditingController(text: initialPhone);
     final addressController = TextEditingController(
       text: customer['dia_chi'] ?? '',
     );
@@ -438,6 +442,7 @@ class _CustomersPageState extends State<CustomersPage> {
                           Icons.phone,
                         ),
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [PhoneNumberInputFormatter()],
                       ),
                       const SizedBox(height: 15),
                       TextField(
@@ -521,9 +526,9 @@ class _CustomersPageState extends State<CustomersPage> {
 
                           Map<String, dynamic> bodyData = {
                             "ten": nameController.text.trim(),
-                            "sdt": phoneController.text.trim().isEmpty
+                            "sdt": stripNonDigits(phoneController.text).isEmpty
                                 ? null
-                                : phoneController.text.trim(),
+                                : stripNonDigits(phoneController.text),
                             "dia_chi": addressController.text.trim().isEmpty
                                 ? null
                                 : addressController.text.trim(),
@@ -998,7 +1003,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEA580C),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 18,
@@ -1208,8 +1213,9 @@ class _CustomersPageState extends State<CustomersPage> {
                                     customer['id']?.toString() ?? '0';
                                 String tenValue =
                                     customer['ten']?.toString() ?? '-';
-                                String sdtValue =
-                                    customer['sdt']?.toString() ?? '-';
+                                String sdtValue = formatPhoneDisplay(
+                                  customer['sdt'],
+                                );
                                 String diaChiValue =
                                     customer['dia_chi']?.toString() ?? '-';
                                 String ghiChuValue =
@@ -1412,6 +1418,7 @@ class _CustomersPageState extends State<CustomersPage> {
                           Icons.phone,
                         ),
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [PhoneNumberInputFormatter()],
                       ),
                       const SizedBox(height: 15),
                       TextField(

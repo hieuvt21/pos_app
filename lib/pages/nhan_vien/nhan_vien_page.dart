@@ -667,8 +667,8 @@ class _NhanVienPageState extends State<NhanVienPage> {
                       backgroundColor: themeColor,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
+                        horizontal: 20,
+                        vertical: 18,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
