@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:logger/logger.dart';
+import 'package:excel/excel.dart' as excel_pkg;
+import 'package:file_picker/file_picker.dart';
 import '/services/app_config.dart';
 import '../cai_dat/app_storage.dart';
 import '../utils/input_formatters.dart';
@@ -58,6 +61,10 @@ class _CustomersPageState extends State<CustomersPage> {
   List<dynamic> _customersList = [];
   bool _isTableLoading = false;
   bool _isSubmitLoading = false;
+
+  // ===== TRẠNG THÁI XUẤT / NHẬP EXCEL =====
+  bool _isExporting = false;
+  bool _isImporting = false;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -268,6 +275,451 @@ class _CustomersPageState extends State<CustomersPage> {
     _selectedDate = null;
   }
 
+  // ===== KIỂM TRA TRÙNG SỐ ĐIỆN THOẠI =====
+  // Trả về null nếu lỗi kết nối, hoặc Map {exists: bool, id: int?, ten: String?}
+  Future<Map<String, dynamic>?> _checkPhoneExists(
+    String phoneDigits, {
+    int? excludeId,
+  }) async {
+    try {
+      final query = excludeId != null ? '?excludeId=$excludeId' : '';
+      final res = await http.get(
+        Uri.parse(
+          AppConfig().buildUrl('api/khachhang/check-phone/$phoneDigits$query'),
+        ),
+      );
+      if (res.statusCode == 200) {
+        return Map<String, dynamic>.from(jsonDecode(res.body));
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ===== XÁC THỰC MẬT KHẨU ADMIN (dùng cho Xuất / Nhập Excel) =====
+  Future<bool> _verifyAdminPassword(String password) async {
+    try {
+      final res = await http.post(
+        Uri.parse(AppConfig().buildUrl('api/auth/verify-admin-password')),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"matKhau": password}),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _showAdminPasswordDialog({
+    required String title,
+    required String actionLabel,
+    required Future<void> Function() onConfirmed,
+  }) async {
+    final passController = TextEditingController();
+    String? errorText;
+    bool isChecking = false;
+    bool obscure = true;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: !isChecking,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDs) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            children: [
+              const Icon(
+                Icons.lock_rounded,
+                color: Color(0xFFEA580C),
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Thao tác này yêu cầu mật khẩu tài khoản Admin để xác nhận.',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: passController,
+                  obscureText: obscure,
+                  autofocus: true,
+                  onChanged: (_) => setDs(() => errorText = null),
+                  decoration: InputDecoration(
+                    hintText: 'Mật khẩu Admin...',
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 13,
+                    ),
+                    errorText: errorText,
+                    prefixIcon: const Icon(
+                      Icons.key_rounded,
+                      size: 18,
+                      color: Color(0xFF94A3B8),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscure ? Icons.visibility_off : Icons.visibility,
+                        size: 18,
+                        color: const Color(0xFF94A3B8),
+                      ),
+                      onPressed: () => setDs(() => obscure = !obscure),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: errorText != null
+                            ? Colors.red
+                            : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFEA580C),
+                        width: 1.5,
+                      ),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.red),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(
+                        color: Colors.red,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isChecking ? null : () => Navigator.pop(dialogContext),
+              child: const Text(
+                'Hủy',
+                style: TextStyle(color: Color(0xFF64748B)),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: isChecking
+                  ? null
+                  : () async {
+                      final pass = passController.text.trim();
+                      if (pass.isEmpty) {
+                        setDs(() => errorText = 'Vui lòng nhập mật khẩu');
+                        return;
+                      }
+                      setDs(() => isChecking = true);
+                      final ok = await _verifyAdminPassword(pass);
+                      if (!ok) {
+                        setDs(() {
+                          isChecking = false;
+                          errorText = 'Mật khẩu Admin không chính xác';
+                        });
+                        return;
+                      }
+                      if (dialogContext.mounted) Navigator.pop(dialogContext);
+                      await onConfirmed();
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFEA580C),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: isChecking
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      actionLabel,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===== HÀM PHỤ CHO XUẤT / NHẬP EXCEL =====
+  int _asIntOrZero(dynamic v) {
+    if (v is int) return v;
+    return int.tryParse(v?.toString() ?? '') ?? 0;
+  }
+
+  String _formatDateForExport(dynamic raw) {
+    final s = raw?.toString();
+    if (s == null || s.isEmpty || s == 'null') return '';
+    try {
+      final d = DateTime.parse(s);
+      return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    } catch (_) {
+      return s;
+    }
+  }
+
+  // ===== XUẤT DANH SÁCH KHÁCH HÀNG RA FILE EXCEL =====
+  Future<void> _exportToExcel() async {
+    setState(() => _isExporting = true);
+    try {
+      final workbook = excel_pkg.Excel.createExcel();
+      final sheet = workbook['KhachHang'];
+      workbook.delete('Sheet1');
+
+      final headers = [
+        'ID',
+        'Tên khách hàng',
+        'Số điện thoại',
+        'Địa chỉ',
+        'Ngày sinh',
+        'Ghi chú',
+        'Chi tiêu',
+      ];
+      sheet.appendRow(headers.map((h) => excel_pkg.TextCellValue(h)).toList());
+
+      for (final c in _customersList) {
+        sheet.appendRow([
+          excel_pkg.IntCellValue(_asIntOrZero(c['id'])),
+          excel_pkg.TextCellValue(c['ten']?.toString() ?? ''),
+          excel_pkg.TextCellValue(
+            formatPhoneDisplay(c['sdt']) == '-'
+                ? ''
+                : formatPhoneDisplay(c['sdt']),
+          ),
+          excel_pkg.TextCellValue(c['dia_chi']?.toString() ?? ''),
+          excel_pkg.TextCellValue(_formatDateForExport(c['ngay_sinh'])),
+          excel_pkg.TextCellValue(c['ghi_chu']?.toString() ?? ''),
+          excel_pkg.DoubleCellValue(_asNum(c['chi_tieu']).toDouble()),
+        ]);
+      }
+
+      final bytes = workbook.save();
+      if (bytes == null) throw Exception('Không tạo được file Excel');
+
+      final fileName =
+          'khach_hang_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      final savePath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Lưu file danh sách khách hàng',
+        fileName: fileName,
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+      );
+
+      if (savePath == null) return; // người dùng bấm Hủy
+
+      final finalPath = savePath.toLowerCase().endsWith('.xlsx')
+          ? savePath
+          : '$savePath.xlsx';
+      await File(finalPath).writeAsBytes(bytes, flush: true);
+
+      if (!mounted) return;
+      _showCustomSnackBar(
+        'Đã xuất file Excel thành công!',
+        Theme.of(context).colorScheme.primary,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showCustomSnackBar(
+        'Lỗi xuất Excel: $e',
+        Colors.redAccent,
+        icon: Icons.error_outline_rounded,
+      );
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  // ===== NHẬP DANH SÁCH KHÁCH HÀNG TỪ FILE EXCEL =====
+  Future<void> _importFromExcel() async {
+    setState(() => _isImporting = true);
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+      );
+      if (result == null || result.files.single.path == null) return;
+
+      final bytes = await File(result.files.single.path!).readAsBytes();
+      final workbook = excel_pkg.Excel.decodeBytes(bytes);
+
+      if (workbook.tables.isEmpty) {
+        throw Exception('File Excel không có sheet dữ liệu nào.');
+      }
+      final sheet = workbook.tables.values.first;
+      if (sheet.maxRows <= 1) {
+        throw Exception('File Excel không có dữ liệu (chỉ có dòng tiêu đề).');
+      }
+
+      int successCount = 0;
+      int failCount = 0;
+      final List<String> errors = [];
+
+      // Định dạng cột: 0-ID(bỏ qua), 1-Tên, 2-SĐT, 3-Địa chỉ, 4-Ngày sinh(dd/mm/yyyy), 5-Ghi chú, 6-Chi tiêu(bỏ qua)
+      for (int rowIndex = 1; rowIndex < sheet.maxRows; rowIndex++) {
+        final row = sheet.row(rowIndex);
+
+        String cellText(int col) {
+          if (col >= row.length || row[col] == null) return '';
+          return row[col]!.value?.toString().trim() ?? '';
+        }
+
+        final ten = cellText(1);
+        if (ten.isEmpty) continue; // bỏ qua dòng trống
+
+        final sdt = stripNonDigits(cellText(2));
+        final diaChi = cellText(3);
+        final ngaySinhRaw = cellText(4);
+        final ghiChu = cellText(5);
+
+        String? formattedDate;
+        if (ngaySinhRaw.isNotEmpty) {
+          try {
+            if (ngaySinhRaw.contains('/')) {
+              final parts = ngaySinhRaw.split('/');
+              if (parts.length == 3) {
+                formattedDate =
+                    '${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}';
+              }
+            } else {
+              formattedDate = DateTime.parse(
+                ngaySinhRaw,
+              ).toIso8601String().split('T').first;
+            }
+          } catch (_) {
+            formattedDate = null;
+          }
+        }
+
+        final bodyData = {
+          "ten": ten,
+          "sdt": sdt.isEmpty ? null : sdt,
+          "dia_chi": diaChi.isEmpty ? null : diaChi,
+          "ngay_sinh": formattedDate,
+          "ghi_chu": ghiChu.isEmpty ? null : ghiChu,
+        };
+
+        try {
+          final res = await http.post(
+            Uri.parse(AppConfig().buildUrl('api/khachhang')),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode(bodyData),
+          );
+          if (res.statusCode == 200 || res.statusCode == 201) {
+            successCount++;
+          } else {
+            failCount++;
+            errors.add(
+              'Dòng ${rowIndex + 1} ("$ten"): ${jsonDecode(res.body)['message'] ?? 'Lỗi không xác định'}',
+            );
+          }
+        } catch (e) {
+          failCount++;
+          errors.add('Dòng ${rowIndex + 1} ("$ten"): $e');
+        }
+      }
+
+      await _fetchCustomers();
+      if (!mounted) return;
+
+      _showCustomSnackBar(
+        'Nhập xong: $successCount thành công, $failCount lỗi.',
+        failCount > 0 ? Colors.orange : Theme.of(context).colorScheme.primary,
+        icon: failCount > 0
+            ? Icons.warning_amber_rounded
+            : Icons.check_circle_rounded,
+      );
+
+      if (errors.isNotEmpty && mounted) _showImportErrorsDialog(errors);
+    } catch (e) {
+      if (!mounted) return;
+      _showCustomSnackBar(
+        'Lỗi nhập Excel: $e',
+        Colors.redAccent,
+        icon: Icons.error_outline_rounded,
+      );
+    } finally {
+      if (mounted) setState(() => _isImporting = false);
+    }
+  }
+
+  void _showImportErrorsDialog(List<String> errors) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text(
+          'Chi tiết lỗi khi nhập',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: SizedBox(
+          width: 420,
+          height: 300,
+          child: ListView.builder(
+            itemCount: errors.length,
+            itemBuilder: (context, index) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                '• ${errors[index]}',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Color(0xFFB91C1C),
+                ),
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEA580C),
+            ),
+            child: const Text('Đóng', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   num _asNum(dynamic v) {
     if (v is num) return v;
     return num.tryParse(v?.toString() ?? '') ?? 0;
@@ -407,12 +859,39 @@ class _CustomersPageState extends State<CustomersPage> {
 
     bool isSubmitting = false;
 
+    // Trạng thái kiểm tra trùng SĐT (loại trừ chính khách hàng đang sửa)
+    String? phoneDuplicateError;
+    bool isCheckingPhone = false;
+    final int currentCustomerId = customer['id'] as int;
+
     showDialog(
       context: context,
       barrierDismissible: !isSubmitting,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
+            // Hàm kiểm tra trùng SĐT khi gõ đủ 10 số, bỏ qua chính khách hàng này
+            Future<void> handlePhoneChanged(String value) async {
+              final digits = stripNonDigits(value);
+              setDialogState(() => phoneDuplicateError = null);
+              if (digits.length != 10) return;
+
+              setDialogState(() => isCheckingPhone = true);
+              final result = await _checkPhoneExists(
+                digits,
+                excludeId: currentCustomerId,
+              );
+              if (!dialogContext.mounted) return;
+
+              setDialogState(() {
+                isCheckingPhone = false;
+                if (result != null && result['exists'] == true) {
+                  phoneDuplicateError =
+                      'Số điện thoại đã tồn tại (KH: ${result['ten'] ?? 'không rõ tên'})';
+                }
+              });
+            }
+
             return AlertDialog(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
@@ -437,12 +916,35 @@ class _CustomersPageState extends State<CustomersPage> {
                       const SizedBox(height: 15),
                       TextField(
                         controller: phoneController,
-                        decoration: _dialogInputDecoration(
-                          'Số điện thoại',
-                          Icons.phone,
-                        ),
                         keyboardType: TextInputType.phone,
                         inputFormatters: [PhoneNumberInputFormatter()],
+                        onChanged: handlePhoneChanged,
+                        decoration:
+                            _dialogInputDecoration(
+                              'Số điện thoại',
+                              Icons.phone,
+                            ).copyWith(
+                              errorText: phoneDuplicateError,
+                              errorMaxLines: 2,
+                              suffixIcon: isCheckingPhone
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(14),
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  : (phoneDuplicateError != null
+                                        ? const Icon(
+                                            Icons.error_outline_rounded,
+                                            color: Colors.redAccent,
+                                            size: 20,
+                                          )
+                                        : null),
+                            ),
                       ),
                       const SizedBox(height: 15),
                       TextField(
@@ -507,7 +1009,10 @@ class _CustomersPageState extends State<CustomersPage> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: isSubmitting
+                  onPressed:
+                      (isSubmitting ||
+                          isCheckingPhone ||
+                          phoneDuplicateError != null)
                       ? null
                       : () async {
                           if (nameController.text.trim().isEmpty) {
@@ -575,6 +1080,7 @@ class _CustomersPageState extends State<CustomersPage> {
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEA580C),
+                    disabledBackgroundColor: const Color(0xFFE2E8F0),
                   ),
                   child: isSubmitting
                       ? const SizedBox(
@@ -992,6 +1498,75 @@ class _CustomersPageState extends State<CustomersPage> {
                     ),
                   ),
                   const SizedBox(width: 16),
+
+                  // ===== NÚT XUẤT EXCEL =====
+                  OutlinedButton.icon(
+                    onPressed: _isExporting
+                        ? null
+                        : () => _showAdminPasswordDialog(
+                            title: 'Xác thực Admin - Xuất Excel',
+                            actionLabel: 'Xác nhận & Xuất',
+                            onConfirmed: _exportToExcel,
+                          ),
+                    icon: _isExporting
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.file_download_outlined, size: 18),
+                    label: Text(
+                      _isExporting ? 'Đang xuất...' : 'Xuất',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF334155),
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 18,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // ===== NÚT NHẬP EXCEL =====
+                  OutlinedButton.icon(
+                    onPressed: _isImporting
+                        ? null
+                        : () => _showAdminPasswordDialog(
+                            title: 'Xác thực Admin - Nhập Excel',
+                            actionLabel: 'Xác nhận & Nhập',
+                            onConfirmed: _importFromExcel,
+                          ),
+                    icon: _isImporting
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.file_upload_outlined, size: 18),
+                    label: Text(
+                      _isImporting ? 'Đang nhập...' : 'Nhập',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF334155),
+                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 18,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+
                   ElevatedButton.icon(
                     onPressed: _showAddCustomerDialog,
                     icon: const Icon(Icons.add, color: Colors.white, size: 18),
@@ -1383,12 +1958,35 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 
   void _showAddCustomerDialog() {
+    // Trạng thái kiểm tra trùng SĐT, cục bộ cho riêng dialog này
+    String? phoneDuplicateError;
+    bool isCheckingPhone = false;
+
     showDialog(
       context: context,
       barrierDismissible: !_isSubmitLoading,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
+            // Hàm kiểm tra trùng SĐT khi gõ đủ 10 số
+            Future<void> handlePhoneChanged(String value) async {
+              final digits = stripNonDigits(value);
+              setDialogState(() => phoneDuplicateError = null);
+              if (digits.length != 10) return;
+
+              setDialogState(() => isCheckingPhone = true);
+              final result = await _checkPhoneExists(digits);
+              if (!dialogContext.mounted) return;
+
+              setDialogState(() {
+                isCheckingPhone = false;
+                if (result != null && result['exists'] == true) {
+                  phoneDuplicateError =
+                      'Số điện thoại đã tồn tại (KH: ${result['ten'] ?? 'không rõ tên'})';
+                }
+              });
+            }
+
             return AlertDialog(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
@@ -1413,12 +2011,35 @@ class _CustomersPageState extends State<CustomersPage> {
                       const SizedBox(height: 15),
                       TextField(
                         controller: _phoneController,
-                        decoration: _dialogInputDecoration(
-                          'Số điện thoại',
-                          Icons.phone,
-                        ),
                         keyboardType: TextInputType.phone,
                         inputFormatters: [PhoneNumberInputFormatter()],
+                        onChanged: handlePhoneChanged,
+                        decoration:
+                            _dialogInputDecoration(
+                              'Số điện thoại',
+                              Icons.phone,
+                            ).copyWith(
+                              errorText: phoneDuplicateError,
+                              errorMaxLines: 2,
+                              suffixIcon: isCheckingPhone
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(14),
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  : (phoneDuplicateError != null
+                                        ? const Icon(
+                                            Icons.error_outline_rounded,
+                                            color: Colors.redAccent,
+                                            size: 20,
+                                          )
+                                        : null),
+                            ),
                       ),
                       const SizedBox(height: 15),
                       TextField(
@@ -1476,9 +2097,15 @@ class _CustomersPageState extends State<CustomersPage> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: _isSubmitLoading ? null : _addCustomer,
+                  onPressed:
+                      (_isSubmitLoading ||
+                          isCheckingPhone ||
+                          phoneDuplicateError != null)
+                      ? null
+                      : _addCustomer,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEA580C),
+                    disabledBackgroundColor: const Color(0xFFE2E8F0),
                   ),
                   child: _isSubmitLoading
                       ? const SizedBox(
