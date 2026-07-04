@@ -4,6 +4,7 @@ import 'main_shell.dart';
 import 'pages/cai_dat/cai_dat_cua_hang/theme_provider.dart';
 import 'pages/login_page.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,6 +48,13 @@ class ModernPOSApp extends StatelessWidget {
           title: AppStorage.getAppName(),
           theme: AppThemeProvider().getThemeData(),
           initialRoute: initialRoute,
+          locale: const Locale('vi', 'VN'),
+          supportedLocales: const [Locale('vi', 'VN'), Locale('en', 'US')],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           routes: {
             '/login': (context) => const LoginPage(),
             '/home': (context) => const MainShell(),

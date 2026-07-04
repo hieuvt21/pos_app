@@ -1,28 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import '../app_storage.dart';
-
-class ThousandsSeparatorInputFormatter extends TextInputFormatter {
-  final NumberFormat _formatter = NumberFormat('#,###', 'en_US');
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    if (newValue.text.isEmpty) return newValue.copyWith(text: '');
-    String numStr = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
-    if (numStr.isEmpty) return newValue.copyWith(text: '');
-    int value = int.parse(numStr);
-    String newText = _formatter.format(value);
-    return newValue.copyWith(
-      text: newText,
-      selection: TextSelection.collapsed(offset: newText.length),
-    );
-  }
-}
+import '/pages/utils/input_formatters.dart';
 
 class MembershipTierSubPage extends StatefulWidget {
   const MembershipTierSubPage({super.key});

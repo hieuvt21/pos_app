@@ -8,6 +8,7 @@ import 'pages/don_hang/orders_page.dart';
 import 'pages/san_pham/products_page.dart';
 import 'pages/dich_vu/services_page.dart';
 import 'pages/khach_hang/customers_page.dart';
+import 'pages/nhan_vien/nhan_vien_page.dart';
 import 'pages/bao_cao/reports_page.dart';
 import 'pages/cai_dat/settings_page.dart';
 import 'pages/cai_dat/cai_dat_cua_hang/theme_provider.dart';
@@ -38,6 +39,7 @@ class _MainShellState extends State<MainShell> {
     {'title': 'Sản phẩm', 'icon': Icons.inventory_2_rounded},
     {'title': 'Dịch vụ', 'icon': Icons.medical_services_rounded},
     {'title': 'Khách hàng', 'icon': Icons.people_rounded},
+    {'title': 'Nhân viên', 'icon': Icons.person_rounded},
     {'title': 'Báo cáo', 'icon': Icons.analytics_rounded},
     {'title': 'Cài đặt', 'icon': Icons.settings_suggest_rounded},
   ];
@@ -85,8 +87,10 @@ class _MainShellState extends State<MainShell> {
       case 5:
         return const CustomersPage();
       case 6:
-        return const ReportsPage();
+        return const NhanVienPage();
       case 7:
+        return const ReportsPage();
+      case 8:
         return const SettingsPage();
       default:
         return const DashboardPage();
