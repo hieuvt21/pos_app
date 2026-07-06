@@ -76,6 +76,10 @@ class _CustomersPageState extends State<CustomersPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchKeyword = '';
   String _sortOption = 'default';
+
+  // ===== PHÂN TRANG =====
+  static const int _itemsPerPage = 10;
+  int _currentPage = 1;
   static const Map<String, String> _sortLabels = {
     'default': 'Mặc định',
     'chi_tieu_desc': 'Chi tiêu nhiều nhất',
@@ -332,11 +336,7 @@ class _CustomersPageState extends State<CustomersPage> {
           ),
           title: Row(
             children: [
-              const Icon(
-                Icons.lock_rounded,
-                color: Color(0xFFEA580C),
-                size: 22,
-              ),
+              const Icon(Icons.lock_rounded, color: Color(0xFFEA580C), size: 22),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -413,10 +413,7 @@ class _CustomersPageState extends State<CustomersPage> {
                     ),
                     focusedErrorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                        color: Colors.red,
-                        width: 1.5,
-                      ),
+                      borderSide: const BorderSide(color: Colors.red, width: 1.5),
                     ),
                   ),
                 ),
@@ -515,7 +512,11 @@ class _CustomersPageState extends State<CustomersPage> {
       ];
       sheet.appendRow(headers.map((h) => excel_pkg.TextCellValue(h)).toList());
 
-      for (final c in _customersList) {
+      // Sắp xếp theo ID từ nhỏ đến lớn trước khi xuất (không ảnh hưởng thứ tự hiển thị trên bảng)
+      final sortedForExport = List<dynamic>.from(_customersList)
+        ..sort((a, b) => _asIntOrZero(a['id']).compareTo(_asIntOrZero(b['id'])));
+
+      for (final c in sortedForExport) {
         sheet.appendRow([
           excel_pkg.IntCellValue(_asIntOrZero(c['id'])),
           excel_pkg.TextCellValue(c['ten']?.toString() ?? ''),
@@ -534,8 +535,7 @@ class _CustomersPageState extends State<CustomersPage> {
       final bytes = workbook.save();
       if (bytes == null) throw Exception('Không tạo được file Excel');
 
-      final fileName =
-          'khach_hang_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      final fileName = 'khach_hang_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       final savePath = await FilePicker.platform.saveFile(
         dialogTitle: 'Lưu file danh sách khách hàng',
         fileName: fileName,
@@ -589,10 +589,12 @@ class _CustomersPageState extends State<CustomersPage> {
       }
 
       int successCount = 0;
+      int updatedCount = 0;
       int failCount = 0;
       final List<String> errors = [];
 
-      // Định dạng cột: 0-ID(bỏ qua), 1-Tên, 2-SĐT, 3-Địa chỉ, 4-Ngày sinh(dd/mm/yyyy), 5-Ghi chú, 6-Chi tiêu(bỏ qua)
+      // Định dạng cột: 0-ID(để trống nếu thêm mới, điền ID cũ nếu muốn cập nhật),
+      // 1-Tên, 2-SĐT, 3-Địa chỉ, 4-Ngày sinh(dd/mm/yyyy), 5-Ghi chú, 6-Chi tiêu(bỏ qua, không cập nhật)
       for (int rowIndex = 1; rowIndex < sheet.maxRows; rowIndex++) {
         final row = sheet.row(rowIndex);
 
@@ -601,10 +603,33 @@ class _CustomersPageState extends State<CustomersPage> {
           return row[col]!.value?.toString().trim() ?? '';
         }
 
+        final idText = cellText(0);
         final ten = cellText(1);
         if (ten.isEmpty) continue; // bỏ qua dòng trống
 
+        // ===== XÁC ĐỊNH TẠO MỚI HAY CẬP NHẬT DỰA VÀO CỘT ID =====
+        int? targetId;
+        if (idText.isNotEmpty) {
+          final parsedId = int.tryParse(idText);
+          if (parsedId == null) {
+            failCount++;
+            errors.add(
+              'Dòng ${rowIndex + 1} ("$ten"): Giá trị ID "$idText" không hợp lệ (phải là số hoặc để trống).',
+            );
+            continue;
+          }
+          targetId = parsedId;
+        }
+
         final sdt = stripNonDigits(cellText(2));
+        if (sdt.isNotEmpty && sdt.length != 10) {
+          failCount++;
+          errors.add(
+            'Dòng ${rowIndex + 1} ("$ten"): Số điện thoại "$sdt" không hợp lệ (phải đủ 10 số hoặc để trống).',
+          );
+          continue;
+        }
+
         final diaChi = cellText(3);
         final ngaySinhRaw = cellText(4);
         final ghiChu = cellText(5);
@@ -619,36 +644,64 @@ class _CustomersPageState extends State<CustomersPage> {
                     '${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}';
               }
             } else {
-              formattedDate = DateTime.parse(
-                ngaySinhRaw,
-              ).toIso8601String().split('T').first;
+              formattedDate =
+                  DateTime.parse(ngaySinhRaw).toIso8601String().split('T').first;
             }
           } catch (_) {
             formattedDate = null;
           }
         }
 
-        final bodyData = {
-          "ten": ten,
-          "sdt": sdt.isEmpty ? null : sdt,
-          "dia_chi": diaChi.isEmpty ? null : diaChi,
-          "ngay_sinh": formattedDate,
-          "ghi_chu": ghiChu.isEmpty ? null : ghiChu,
-        };
-
         try {
-          final res = await http.post(
-            Uri.parse(AppConfig().buildUrl('api/khachhang')),
-            headers: {"Content-Type": "application/json"},
-            body: jsonEncode(bodyData),
-          );
-          if (res.statusCode == 200 || res.statusCode == 201) {
-            successCount++;
-          } else {
-            failCount++;
-            errors.add(
-              'Dòng ${rowIndex + 1} ("$ten"): ${jsonDecode(res.body)['message'] ?? 'Lỗi không xác định'}',
+          if (targetId != null) {
+            // ===== CÓ ID → CẬP NHẬT KHÁCH HÀNG CŨ =====
+            final bodyData = {
+              "ten": ten,
+              "sdt": sdt.isEmpty ? null : sdt,
+              "dia_chi": diaChi.isEmpty ? null : diaChi,
+              "ngay_sinh": formattedDate,
+              "ghi_chu": ghiChu.isEmpty ? null : ghiChu,
+            };
+            final res = await http.put(
+              Uri.parse(AppConfig().buildUrl('api/khachhang/$targetId')),
+              headers: {"Content-Type": "application/json"},
+              body: jsonEncode(bodyData),
             );
+            if (res.statusCode == 200) {
+              updatedCount++;
+            } else if (res.statusCode == 404) {
+              failCount++;
+              errors.add(
+                'Dòng ${rowIndex + 1} ("$ten"): Không tìm thấy khách hàng có ID $targetId để cập nhật.',
+              );
+            } else {
+              failCount++;
+              errors.add(
+                'Dòng ${rowIndex + 1} ("$ten"): ${jsonDecode(res.body)['message'] ?? 'Lỗi không xác định'}',
+              );
+            }
+          } else {
+            // ===== KHÔNG CÓ ID → TẠO MỚI KHÁCH HÀNG =====
+            final bodyData = {
+              "ten": ten,
+              "sdt": sdt.isEmpty ? null : sdt,
+              "dia_chi": diaChi.isEmpty ? null : diaChi,
+              "ngay_sinh": formattedDate,
+              "ghi_chu": ghiChu.isEmpty ? null : ghiChu,
+            };
+            final res = await http.post(
+              Uri.parse(AppConfig().buildUrl('api/khachhang')),
+              headers: {"Content-Type": "application/json"},
+              body: jsonEncode(bodyData),
+            );
+            if (res.statusCode == 200 || res.statusCode == 201) {
+              successCount++;
+            } else {
+              failCount++;
+              errors.add(
+                'Dòng ${rowIndex + 1} ("$ten"): ${jsonDecode(res.body)['message'] ?? 'Lỗi không xác định'}',
+              );
+            }
           }
         } catch (e) {
           failCount++;
@@ -660,7 +713,7 @@ class _CustomersPageState extends State<CustomersPage> {
       if (!mounted) return;
 
       _showCustomSnackBar(
-        'Nhập xong: $successCount thành công, $failCount lỗi.',
+        'Nhập xong: $successCount thêm mới, $updatedCount cập nhật, $failCount lỗi.',
         failCount > 0 ? Colors.orange : Theme.of(context).colorScheme.primary,
         icon: failCount > 0
             ? Icons.warning_amber_rounded
@@ -699,10 +752,7 @@ class _CustomersPageState extends State<CustomersPage> {
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Text(
                 '• ${errors[index]}',
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  color: Color(0xFFB91C1C),
-                ),
+                style: const TextStyle(fontSize: 12.5, color: Color(0xFFB91C1C)),
               ),
             ),
           ),
@@ -799,7 +849,8 @@ class _CustomersPageState extends State<CustomersPage> {
     return ascending ? ageA.compareTo(ageB) : ageB.compareTo(ageA);
   }
 
-  List<dynamic> get _displayedList {
+  // Danh sách đã lọc theo tìm kiếm + sắp xếp (CHƯA cắt trang)
+  List<dynamic> get _filteredSortedList {
     List<dynamic> list = List.from(_customersList);
 
     if (_searchKeyword.trim().isNotEmpty) {
@@ -834,6 +885,28 @@ class _CustomersPageState extends State<CustomersPage> {
     }
 
     return list;
+  }
+
+  // Tổng số trang (luôn tối thiểu 1 trang để tránh chia cho 0)
+  int get _totalPages {
+    final len = _filteredSortedList.length;
+    if (len == 0) return 1;
+    return (len / _itemsPerPage).ceil();
+  }
+
+  // Trang hiện tại đã được "ghim" trong khoảng hợp lệ [1, totalPages]
+  // (phòng trường hợp lọc/tìm kiếm/xóa dữ liệu làm số trang giảm xuống)
+  int get _safeCurrentPage => _currentPage.clamp(1, _totalPages);
+
+  // Danh sách khách hàng CHỈ của trang hiện tại (dùng để hiển thị lên bảng)
+  List<dynamic> get _paginatedList {
+    final list = _filteredSortedList;
+    if (list.isEmpty) return [];
+    final page = _safeCurrentPage;
+    final start = (page - 1) * _itemsPerPage;
+    final end = (start + _itemsPerPage).clamp(0, list.length);
+    if (start >= list.length) return [];
+    return list.sublist(start, end);
   }
 
   void _showEditCustomerDialog(dynamic customer) {
@@ -1319,7 +1392,12 @@ class _CustomersPageState extends State<CustomersPage> {
               )
               .toList(),
           onChanged: (v) {
-            if (v != null) setState(() => _sortOption = v);
+            if (v != null) {
+              setState(() {
+                _sortOption = v;
+                _currentPage = 1;
+              });
+            }
           },
         ),
       ),
@@ -1412,7 +1490,8 @@ class _CustomersPageState extends State<CustomersPage> {
 
   @override
   Widget build(BuildContext context) {
-    final displayedList = _displayedList;
+    final fullList = _filteredSortedList;
+    final displayedList = _paginatedList;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -1439,7 +1518,10 @@ class _CustomersPageState extends State<CustomersPage> {
                     height: 40,
                     child: TextField(
                       controller: _searchController,
-                      onChanged: (v) => setState(() => _searchKeyword = v),
+                      onChanged: (v) => setState(() {
+                        _searchKeyword = v;
+                        _currentPage = 1;
+                      }),
                       decoration: InputDecoration(
                         hintText: 'Tìm kiếm khách hàng...',
                         hintStyle: const TextStyle(
@@ -1458,7 +1540,10 @@ class _CustomersPageState extends State<CustomersPage> {
                                 color: const Color(0xFF94A3B8),
                                 onPressed: () {
                                   _searchController.clear();
-                                  setState(() => _searchKeyword = '');
+                                  setState(() {
+                                    _searchKeyword = '';
+                                    _currentPage = 1;
+                                  });
                                 },
                               ),
                         contentPadding: EdgeInsets.zero,
@@ -1504,19 +1589,22 @@ class _CustomersPageState extends State<CustomersPage> {
                     onPressed: _isExporting
                         ? null
                         : () => _showAdminPasswordDialog(
-                            title: 'Xác thực Admin - Xuất Excel',
-                            actionLabel: 'Xác nhận & Xuất',
-                            onConfirmed: _exportToExcel,
-                          ),
+                              title: 'Xác thực Admin - Xuất Excel',
+                              actionLabel: 'Xác nhận & Xuất',
+                              onConfirmed: _exportToExcel,
+                            ),
                     icon: _isExporting
                         ? const SizedBox(
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.file_download_outlined, size: 18),
+                        : const Icon(
+                            Icons.file_download_outlined,
+                            size: 18,
+                          ),
                     label: Text(
-                      _isExporting ? 'Đang xuất...' : 'Xuất',
+                      _isExporting ? 'Đang xuất...' : 'Xuất Excel',
                       style: const TextStyle(fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -1538,19 +1626,22 @@ class _CustomersPageState extends State<CustomersPage> {
                     onPressed: _isImporting
                         ? null
                         : () => _showAdminPasswordDialog(
-                            title: 'Xác thực Admin - Nhập Excel',
-                            actionLabel: 'Xác nhận & Nhập',
-                            onConfirmed: _importFromExcel,
-                          ),
+                              title: 'Xác thực Admin - Nhập Excel',
+                              actionLabel: 'Xác nhận & Nhập',
+                              onConfirmed: _importFromExcel,
+                            ),
                     icon: _isImporting
                         ? const SizedBox(
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.file_upload_outlined, size: 18),
+                        : const Icon(
+                            Icons.file_upload_outlined,
+                            size: 18,
+                          ),
                     label: Text(
-                      _isImporting ? 'Đang nhập...' : 'Nhập',
+                      _isImporting ? 'Đang nhập...' : 'Nhập Excel',
                       style: const TextStyle(fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -1607,7 +1698,7 @@ class _CustomersPageState extends State<CustomersPage> {
                           color: Color(0xFFEA580C),
                         ),
                       )
-                    : displayedList.isEmpty
+                    : fullList.isEmpty
                     ? Center(
                         child: Text(
                           _customersList.isEmpty
@@ -1924,30 +2015,13 @@ class _CustomersPageState extends State<CustomersPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Hiển thị ${displayedList.length}/${_customersList.length} khách hàng',
+                    fullList.isEmpty
+                        ? 'Hiển thị 0/${_customersList.length} khách hàng'
+                        : 'Hiển thị ${(_safeCurrentPage - 1) * _itemsPerPage + 1}-${((_safeCurrentPage - 1) * _itemsPerPage + displayedList.length)}/${fullList.length} khách hàng',
                     style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEA580C),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '1',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  if (_totalPages > 1)
+                    _buildPaginationControls(Theme.of(context).colorScheme.primary),
                 ],
               ),
             ),
@@ -1955,6 +2029,124 @@ class _CustomersPageState extends State<CustomersPage> {
         ),
       ),
     );
+  }
+
+  // ===== THANH ĐIỀU KHIỂN PHÂN TRANG (Trước / số trang / Sau) =====
+  Widget _buildPaginationControls(Color themeColor) {
+    final total = _totalPages;
+    final current = _safeCurrentPage;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildPageArrowButton(
+          icon: Icons.chevron_left_rounded,
+          enabled: current > 1,
+          onTap: () => setState(() => _currentPage = current - 1),
+        ),
+        const SizedBox(width: 6),
+        ..._buildPageNumberWidgets(themeColor, total, current),
+        const SizedBox(width: 6),
+        _buildPageArrowButton(
+          icon: Icons.chevron_right_rounded,
+          enabled: current < total,
+          onTap: () => setState(() => _currentPage = current + 1),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPageArrowButton({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(6),
+          color: Colors.white,
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: enabled ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageNumberButton(int page, Color themeColor, bool isActive) {
+    return InkWell(
+      onTap: isActive ? null : () => setState(() => _currentPage = page),
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        width: 32,
+        height: 32,
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isActive ? themeColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: isActive ? null : Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Text(
+          '$page',
+          style: TextStyle(
+            color: isActive ? Colors.white : const Color(0xFF334155),
+            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageEllipsis() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 4),
+      child: Text(
+        '...',
+        style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+      ),
+    );
+  }
+
+  // Tạo danh sách nút số trang, có rút gọn bằng dấu "..." khi có quá nhiều trang
+  List<Widget> _buildPageNumberWidgets(
+    Color themeColor,
+    int total,
+    int current,
+  ) {
+    final List<Widget> widgets = [];
+
+    if (total <= 7) {
+      for (int i = 1; i <= total; i++) {
+        widgets.add(_buildPageNumberButton(i, themeColor, i == current));
+      }
+      return widgets;
+    }
+
+    widgets.add(_buildPageNumberButton(1, themeColor, current == 1));
+
+    if (current > 3) widgets.add(_buildPageEllipsis());
+
+    final start = (current - 1).clamp(2, total - 1);
+    final end = (current + 1).clamp(2, total - 1);
+    for (int i = start; i <= end; i++) {
+      widgets.add(_buildPageNumberButton(i, themeColor, i == current));
+    }
+
+    if (current < total - 2) widgets.add(_buildPageEllipsis());
+
+    widgets.add(_buildPageNumberButton(total, themeColor, current == total));
+
+    return widgets;
   }
 
   void _showAddCustomerDialog() {

@@ -13,7 +13,7 @@ class AppConfig extends ChangeNotifier {
   AppConfig._internal() {
     // KHỞI TẠO BAN ĐẦU: Ưu tiên đọc lại cấu hình cũ từ bộ nhớ máy (thông qua AppStorage)
     // Nếu chưa từng lưu (lần đầu mở app), sẽ lấy giá trị mặc định ban đầu.
-    _serverIp = AppStorage.getServerIp() ?? '192.168.0.150';
+    _serverIp = AppStorage.getServerIp() ?? 'localhost';
     _serverPort = AppStorage.getServerPort() ?? '5000';
   }
 

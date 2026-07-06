@@ -17,36 +17,21 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
 
   // Dữ liệu mẫu ban đầu (UI tĩnh tách biệt)
   List<Map<String, dynamic>> _membershipTiers = [
-    {
-      'id': 'silver',
-      'tier': 'Hạng Bạc (Silver)',
-      'threshold': '5,000,000',
-      'discount': '2%',
-    },
-    {
-      'id': 'gold',
-      'tier': 'Hạng Vàng (Gold)',
-      'threshold': '15,000,000',
-      'discount': '5%',
-    },
+    {'id': 'silver', 'tier': 'Bạc', 'threshold': '5,000,000', 'discount': '2%'},
+    {'id': 'gold', 'tier': 'Vàng', 'threshold': '15,000,000', 'discount': '5%'},
     {
       'id': 'platinum_new',
-      'tier': 'Hạng Bạch Kim (Platinum)',
+      'tier': 'Bạch Kim',
       'threshold': '30,000,000',
       'discount': '7%',
     },
     {
       'id': 'diamond',
-      'tier': 'Hạng Kim Cương (Diamond)',
+      'tier': 'Kim Cương',
       'threshold': '50,000,000',
       'discount': '10%',
     },
-    {
-      'id': 'vip',
-      'tier': 'Hạng VIP',
-      'threshold': '100,000,000',
-      'discount': '15%',
-    },
+    {'id': 'vip', 'tier': 'VIP', 'threshold': '100,000,000', 'discount': '15%'},
   ];
 
   Color _getTierColor(String id) {
@@ -179,7 +164,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Mức chi tiêu tối thiểu để đạt hạng (VNĐ)',
+                      'Mức chi tiêu tối thiểu để đạt hạng',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -374,7 +359,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                               isHeader: true,
                             ),
                             _buildTableCell(
-                              'MỨC TÍCH LŨY TỐI THIỂU (VNĐ)',
+                              'MỨC TÍCH LŨY TỐI THIỂU',
                               isHeader: true,
                             ),
                             _buildTableCell('CHIẾT KHẤU', isHeader: true),
@@ -490,7 +475,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                                     ),
                                     SizedBox(width: 10),
                                     Text(
-                                      'Cấu hình hạng thành viên đã được lưu trữ vĩnh viễn!',
+                                      'Cấu hình hạng thành viên thành công!',
                                     ),
                                   ],
                                 ),
