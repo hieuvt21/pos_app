@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import '/services/app_config.dart';
 import '../cai_dat/app_storage.dart';
 import '../utils/input_formatters.dart';
+import '../utils/membership_tier_utils.dart';
 
 class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});
@@ -21,42 +22,11 @@ class _CustomersPageState extends State<CustomersPage> {
     printer: PrettyPrinter(methodCount: 0, colors: true, printEmojis: true),
   );
 
-  // ===== HẠNG THÀNH VIÊN MẶC ĐỊNH (khớp với membership_tier_sub.dart) =====
-  static const List<Map<String, dynamic>> _defaultMembershipTiers = [
-    {
-      'id': 'silver',
-      'tier': 'Hạng Bạc (Silver)',
-      'threshold': '1,000,000',
-      'discount': '0%',
-    },
-    {
-      'id': 'gold',
-      'tier': 'Hạng Vàng (Gold)',
-      'threshold': '3,000,000',
-      'discount': '0%',
-    },
-    {
-      'id': 'platinum_new',
-      'tier': 'Hạng Bạch Kim (Platinum)',
-      'threshold': '10,000,000',
-      'discount': '0%',
-    },
-    {
-      'id': 'diamond',
-      'tier': 'Hạng Kim Cương (Diamond)',
-      'threshold': '50,000,000',
-      'discount': '2%',
-    },
-    {
-      'id': 'vip',
-      'tier': 'Hạng VIP',
-      'threshold': '100,000,000',
-      'discount': '5%',
-    },
-  ];
-  List<Map<String, dynamic>> _membershipTiers = List.from(
-    _defaultMembershipTiers,
-  );
+  // ===== HẠNG THÀNH VIÊN MẶC ĐỊNH =====
+  // Lấy từ membership_tier_utils.dart — dùng CHUNG với trang "Hạng thành viên"
+  // trong Cài đặt để tên/mốc chi tiêu/chiết khấu/icon/màu luôn đồng bộ,
+  // không còn bị lệch dữ liệu giữa 2 trang như trước.
+  List<Map<String, dynamic>> _membershipTiers = buildDefaultMembershipTiers();
 
   List<dynamic> _customersList = [];
   bool _isTableLoading = false;
@@ -110,13 +80,26 @@ class _CustomersPageState extends State<CustomersPage> {
       final cached = AppStorage.getMembershipTiers();
       if (cached != null && cached.isNotEmpty) {
         final List<dynamic> decoded = jsonDecode(cached);
-        _membershipTiers = decoded
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
+        final defaults = buildDefaultMembershipTiers();
+        _membershipTiers = decoded.map((e) {
+          final tier = Map<String, dynamic>.from(e);
+          final matchedDefault = defaults.firstWhere(
+            (d) => d['id'] == tier['id'],
+            orElse: () => defaults.first,
+          );
+          if (tier['icon'] == null || (tier['icon'] as String).isEmpty) {
+            tier['icon'] = matchedDefault['icon'];
+          }
+          if (tier['colorHex'] == null ||
+              (tier['colorHex'] as String).isEmpty) {
+            tier['colorHex'] = matchedDefault['colorHex'];
+          }
+          return tier;
+        }).toList();
       }
     } catch (e) {
       _logger.w("Không đọc được cấu hình hạng thành viên, dùng mặc định: $e");
-      _membershipTiers = List.from(_defaultMembershipTiers);
+      _membershipTiers = buildDefaultMembershipTiers();
     }
   }
 
@@ -780,23 +763,6 @@ class _CustomersPageState extends State<CustomersPage> {
     return cleanStr.isEmpty ? 0 : int.parse(cleanStr);
   }
 
-  Color _tierColor(String id) {
-    switch (id) {
-      case 'silver':
-        return const Color(0xFF94A3B8);
-      case 'gold':
-        return const Color(0xFFEAB308);
-      case 'platinum_new':
-        return const Color(0xFF6366F1);
-      case 'diamond':
-        return const Color(0xFF06B6D4);
-      case 'vip':
-        return const Color(0xFFEF4444);
-      default:
-        return const Color(0xFF94A3B8);
-    }
-  }
-
   Map<String, dynamic> _resolveTierInfo(num chiTieu) {
     final sortedTiers = List<Map<String, dynamic>>.from(_membershipTiers)
       ..sort(
@@ -809,8 +775,8 @@ class _CustomersPageState extends State<CustomersPage> {
       final threshold = _parseThreshold(tier['threshold']);
       if (chiTieu >= threshold) {
         return {
-          'icon': Icons.stars_rounded,
-          'color': _tierColor(tier['id'] ?? ''),
+          'icon': tierIconFromKey(tier['icon']),
+          'color': tierColorFromHex(tier['colorHex']),
           'label': tier['tier'] ?? '',
         };
       }

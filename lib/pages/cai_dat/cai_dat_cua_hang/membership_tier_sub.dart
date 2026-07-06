@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_storage.dart';
+import '../../utils/membership_tier_utils.dart';
 import '/pages/utils/input_formatters.dart';
 
 class MembershipTierSubPage extends StatefulWidget {
@@ -15,41 +16,10 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
   bool _isTierDiscountEnabled = false;
   bool _isLoading = true;
 
-  // Dữ liệu mẫu ban đầu (UI tĩnh tách biệt)
-  List<Map<String, dynamic>> _membershipTiers = [
-    {'id': 'silver', 'tier': 'Bạc', 'threshold': '5,000,000', 'discount': '2%'},
-    {'id': 'gold', 'tier': 'Vàng', 'threshold': '15,000,000', 'discount': '5%'},
-    {
-      'id': 'platinum_new',
-      'tier': 'Bạch Kim',
-      'threshold': '30,000,000',
-      'discount': '7%',
-    },
-    {
-      'id': 'diamond',
-      'tier': 'Kim Cương',
-      'threshold': '50,000,000',
-      'discount': '10%',
-    },
-    {'id': 'vip', 'tier': 'VIP', 'threshold': '100,000,000', 'discount': '15%'},
-  ];
-
-  Color _getTierColor(String id) {
-    switch (id) {
-      case 'silver':
-        return const Color(0xFF94A3B8);
-      case 'gold':
-        return const Color(0xFFEAB308);
-      case 'platinum_new':
-        return const Color(0xFF6366F1);
-      case 'diamond':
-        return const Color(0xFF06B6D4);
-      case 'vip':
-        return const Color(0xFFEF4444);
-      default:
-        return const Color(0xFF94A3B8);
-    }
-  }
+  // Dữ liệu các hạng thành viên (tên, mốc chi tiêu, chiết khấu, icon, màu sắc).
+  // Giá trị khởi tạo lấy từ buildDefaultMembershipTiers() trong membership_tier_utils.dart
+  // — dùng CHUNG với trang Khách hàng để đảm bảo đồng bộ.
+  List<Map<String, dynamic>> _membershipTiers = buildDefaultMembershipTiers();
 
   @override
   void initState() {
@@ -57,19 +27,38 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
     _loadDataFromDisk();
   }
 
-  // TỐI ƯU: Đọc dữ liệu tập trung qua AppStorage thông qua RAM, cực nhanh và không cần await SharedPreferences
+  // Đọc dữ liệu tập trung qua AppStorage. Nếu dữ liệu cũ (lưu trước khi có
+  // tính năng chọn icon/màu) còn thiếu 2 trường này, tự động bổ sung dựa
+  // theo 'id' để không bị lỗi hiển thị hoặc mất icon.
   void _loadDataFromDisk() {
     try {
       _isTierDiscountEnabled = AppStorage.getTierDiscountStatus();
       String? cachedTiers = AppStorage.getMembershipTiers();
-      if (cachedTiers != null) {
+      final defaults = buildDefaultMembershipTiers();
+
+      if (cachedTiers != null && cachedTiers.isNotEmpty) {
         List<dynamic> decodedList = jsonDecode(cachedTiers);
-        _membershipTiers = decodedList
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList();
+        _membershipTiers = decodedList.map((item) {
+          final tier = Map<String, dynamic>.from(item);
+          final matchedDefault = defaults.firstWhere(
+            (d) => d['id'] == tier['id'],
+            orElse: () => defaults.first,
+          );
+          if (tier['icon'] == null || (tier['icon'] as String).isEmpty) {
+            tier['icon'] = matchedDefault['icon'];
+          }
+          if (tier['colorHex'] == null ||
+              (tier['colorHex'] as String).isEmpty) {
+            tier['colorHex'] = matchedDefault['colorHex'];
+          }
+          return tier;
+        }).toList();
+      } else {
+        _membershipTiers = defaults;
       }
     } catch (e) {
       debugPrint("Lỗi đọc dữ liệu: $e");
+      _membershipTiers = buildDefaultMembershipTiers();
     } finally {
       setState(() {
         _isLoading = false;
@@ -77,7 +66,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
     }
   }
 
-  // TỐI ƯU: Gọi hàm save thông qua AppStorage
+  // Gọi hàm save thông qua AppStorage
   Future<void> _saveDataToDisk() async {
     await AppStorage.saveTierDiscountStatus(_isTierDiscountEnabled);
     await AppStorage.saveMembershipTiers(jsonEncode(_membershipTiers));
@@ -94,20 +83,27 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
     Map<String, dynamic> tierData,
     Color themeColor,
   ) {
+    final TextEditingController nameController = TextEditingController(
+      text: tierData['tier'],
+    );
     final TextEditingController thresholdController = TextEditingController(
       text: tierData['threshold'],
     );
     final TextEditingController discountController = TextEditingController(
-      text: tierData['discount'].replaceAll('%', ''),
+      text: tierData['discount'].toString().replaceAll('%', ''),
     );
+    String selectedIcon = tierData['icon'] ?? 'stars_rounded';
+    String selectedColorHex = tierData['colorHex'] ?? '94A3B8';
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            String? errorText;
+            String? thresholdErrorText;
+            String? nameErrorText;
             bool isValid = true;
+
             int currentThreshold = _parseAmount(thresholdController.text);
 
             if (index > 0) {
@@ -115,7 +111,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                 _membershipTiers[index - 1]['threshold'],
               );
               if (currentThreshold <= prevThreshold) {
-                errorText =
+                thresholdErrorText =
                     'Mốc chi tiêu phải lớn hơn ${_membershipTiers[index - 1]['tier']} (${_membershipTiers[index - 1]['threshold']})';
                 isValid = false;
               }
@@ -126,11 +122,18 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                 _membershipTiers[index + 1]['threshold'],
               );
               if (currentThreshold >= nextThreshold) {
-                errorText =
+                thresholdErrorText =
                     'Mốc chi tiêu phải nhỏ hơn ${_membershipTiers[index + 1]['tier']} (${_membershipTiers[index + 1]['threshold']})';
                 isValid = false;
               }
             }
+
+            if (nameController.text.trim().isEmpty) {
+              nameErrorText = 'Tên hạng không được để trống';
+              isValid = false;
+            }
+
+            final previewColor = tierColorFromHex(selectedColorHex);
 
             return AlertDialog(
               backgroundColor: Colors.white,
@@ -139,16 +142,12 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
               ),
               title: Row(
                 children: [
-                  Icon(
-                    Icons.stars_rounded,
-                    color: _getTierColor(tierData['id'] ?? ''),
-                    size: 22,
-                  ),
+                  Icon(tierIconFromKey(selectedIcon), color: previewColor, size: 22),
                   const SizedBox(width: 10),
-                  Expanded(
+                  const Expanded(
                     child: Text(
-                      'Cập nhật ${tierData['tier']}',
-                      style: const TextStyle(
+                      'Cập nhật Hạng Thành Viên',
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -158,49 +157,163 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                 ],
               ),
               content: SizedBox(
-                width: 400,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Mức chi tiêu tối thiểu để đạt hạng',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                width: 440,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Tên hạng thành viên',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: thresholdController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        ThousandsSeparatorInputFormatter(),
-                      ],
-                      decoration: _inputDecoration(
-                        'Nhập số tiền tối thiểu',
-                        themeColor,
-                        errorText: errorText,
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: nameController,
+                        onChanged: (_) => setDialogState(() {}),
+                        decoration: _inputDecoration(
+                          'VD: Hạng Vàng (Gold)',
+                          themeColor,
+                          errorText: nameErrorText,
+                        ),
                       ),
-                      onChanged: (_) => setDialogState(() {}),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Mức chiết khấu (%)',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Mức chi tiêu tối thiểu để đạt hạng (VNĐ)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: discountController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: _inputDecoration('Ví dụ: 5', themeColor),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: thresholdController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThousandsSeparatorInputFormatter(),
+                        ],
+                        decoration: _inputDecoration(
+                          'Nhập số tiền tối thiểu',
+                          themeColor,
+                          errorText: thresholdErrorText,
+                        ),
+                        onChanged: (_) => setDialogState(() {}),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Mức chiết khấu (%)',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: discountController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: _inputDecoration('Ví dụ: 5', themeColor),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Icon hiển thị',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: tierIconCatalog.keys.map((key) {
+                          final data = tierIconCatalog[key]!;
+                          final isSelected = key == selectedIcon;
+                          return Tooltip(
+                            message: data['label'],
+                            child: InkWell(
+                              onTap: () =>
+                                  setDialogState(() => selectedIcon = key),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? previewColor.withValues(alpha: 0.15)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? previewColor
+                                        : const Color(0xFFE2E8F0),
+                                    width: isSelected ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Icon(
+                                  data['icon'],
+                                  size: 20,
+                                  color: isSelected
+                                      ? previewColor
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Màu sắc',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: tierColorPalette.map((hex) {
+                          final color = tierColorFromHex(hex);
+                          final isSelected = hex == selectedColorHex;
+                          return InkWell(
+                            onTap: () => setDialogState(
+                              () => selectedColorHex = hex,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF1E293B)
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 16,
+                                    )
+                                  : null,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -215,10 +328,16 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                   onPressed: isValid
                       ? () {
                           setState(() {
+                            _membershipTiers[index]['tier'] = nameController
+                                .text
+                                .trim();
                             _membershipTiers[index]['threshold'] =
                                 thresholdController.text.trim();
                             _membershipTiers[index]['discount'] =
                                 '${discountController.text.trim()}%';
+                            _membershipTiers[index]['icon'] = selectedIcon;
+                            _membershipTiers[index]['colorHex'] =
+                                selectedColorHex;
                           });
                           Navigator.pop(context);
                         }
@@ -277,7 +396,8 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Khách hàng tích lũy tổng chi tiêu đạt mức tối thiểu dưới đây sẽ được hệ thống phân bậc tương ứng.',
+                    'Khách hàng tích lũy tổng chi tiêu đạt mức tối thiểu dưới đây sẽ được hệ thống phân bậc tương ứng. '
+                    'Bấm vào icon bút chì ở mỗi hạng để đổi tên, icon và màu hiển thị.',
                     style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                   const Divider(height: 32, color: Color(0xFFF1F5F9)),
@@ -359,7 +479,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                               isHeader: true,
                             ),
                             _buildTableCell(
-                              'MỨC TÍCH LŨY TỐI THIỂU',
+                              'MỨC TÍCH LŨY TỐI THIỂU (VNĐ)',
                               isHeader: true,
                             ),
                             _buildTableCell('CHIẾT KHẤU', isHeader: true),
@@ -368,6 +488,9 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                         ),
                         ...List.generate(_membershipTiers.length, (index) {
                           final tier = _membershipTiers[index];
+                          final tierColor = tierColorFromHex(
+                            tier['colorHex'],
+                          );
                           return TableRow(
                             decoration: const BoxDecoration(
                               border: Border(
@@ -383,8 +506,8 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                                 child: Row(
                                   children: [
                                     Icon(
-                                      Icons.stars_rounded,
-                                      color: _getTierColor(tier['id'] ?? ''),
+                                      tierIconFromKey(tier['icon']),
+                                      color: tierColor,
                                       size: 18,
                                     ),
                                     const SizedBox(width: 8),
@@ -475,7 +598,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                                     ),
                                     SizedBox(width: 10),
                                     Text(
-                                      'Cấu hình hạng thành viên thành công!',
+                                      'Cấu hình hạng thành viên đã được lưu trữ vĩnh viễn!',
                                     ),
                                   ],
                                 ),
@@ -549,6 +672,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
       fillColor: Colors.white,
       filled: true,
       errorText: errorText,
+      errorMaxLines: 2,
       errorStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       enabledBorder: OutlineInputBorder(
