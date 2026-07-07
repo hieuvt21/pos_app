@@ -319,7 +319,11 @@ class _CustomersPageState extends State<CustomersPage> {
           ),
           title: Row(
             children: [
-              const Icon(Icons.lock_rounded, color: Color(0xFFEA580C), size: 22),
+              const Icon(
+                Icons.lock_rounded,
+                color: Color(0xFFEA580C),
+                size: 22,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -396,7 +400,10 @@ class _CustomersPageState extends State<CustomersPage> {
                     ),
                     focusedErrorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Colors.red,
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -496,8 +503,9 @@ class _CustomersPageState extends State<CustomersPage> {
       sheet.appendRow(headers.map((h) => excel_pkg.TextCellValue(h)).toList());
 
       // Sắp xếp theo ID từ nhỏ đến lớn trước khi xuất (không ảnh hưởng thứ tự hiển thị trên bảng)
-      final sortedForExport = List<dynamic>.from(_customersList)
-        ..sort((a, b) => _asIntOrZero(a['id']).compareTo(_asIntOrZero(b['id'])));
+      final sortedForExport = List<dynamic>.from(
+        _customersList,
+      )..sort((a, b) => _asIntOrZero(a['id']).compareTo(_asIntOrZero(b['id'])));
 
       for (final c in sortedForExport) {
         sheet.appendRow([
@@ -518,7 +526,8 @@ class _CustomersPageState extends State<CustomersPage> {
       final bytes = workbook.save();
       if (bytes == null) throw Exception('Không tạo được file Excel');
 
-      final fileName = 'khach_hang_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      final fileName =
+          'khach_hang_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       final savePath = await FilePicker.platform.saveFile(
         dialogTitle: 'Lưu file danh sách khách hàng',
         fileName: fileName,
@@ -627,8 +636,9 @@ class _CustomersPageState extends State<CustomersPage> {
                     '${parts[2]}-${parts[1].padLeft(2, '0')}-${parts[0].padLeft(2, '0')}';
               }
             } else {
-              formattedDate =
-                  DateTime.parse(ngaySinhRaw).toIso8601String().split('T').first;
+              formattedDate = DateTime.parse(
+                ngaySinhRaw,
+              ).toIso8601String().split('T').first;
             }
           } catch (_) {
             formattedDate = null;
@@ -735,7 +745,10 @@ class _CustomersPageState extends State<CustomersPage> {
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Text(
                 '• ${errors[index]}',
-                style: const TextStyle(fontSize: 12.5, color: Color(0xFFB91C1C)),
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: Color(0xFFB91C1C),
+                ),
               ),
             ),
           ),
@@ -1555,22 +1568,19 @@ class _CustomersPageState extends State<CustomersPage> {
                     onPressed: _isExporting
                         ? null
                         : () => _showAdminPasswordDialog(
-                              title: 'Xác thực Admin - Xuất Excel',
-                              actionLabel: 'Xác nhận & Xuất',
-                              onConfirmed: _exportToExcel,
-                            ),
+                            title: 'Xác thực Admin - Xuất Excel',
+                            actionLabel: 'Xác nhận & Xuất',
+                            onConfirmed: _exportToExcel,
+                          ),
                     icon: _isExporting
                         ? const SizedBox(
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(
-                            Icons.file_download_outlined,
-                            size: 18,
-                          ),
+                        : const Icon(Icons.file_download_outlined, size: 18),
                     label: Text(
-                      _isExporting ? 'Đang xuất...' : 'Xuất Excel',
+                      _isExporting ? 'Đang xuất...' : 'Xuất',
                       style: const TextStyle(fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -1592,22 +1602,19 @@ class _CustomersPageState extends State<CustomersPage> {
                     onPressed: _isImporting
                         ? null
                         : () => _showAdminPasswordDialog(
-                              title: 'Xác thực Admin - Nhập Excel',
-                              actionLabel: 'Xác nhận & Nhập',
-                              onConfirmed: _importFromExcel,
-                            ),
+                            title: 'Xác thực Admin - Nhập Excel',
+                            actionLabel: 'Xác nhận & Nhập',
+                            onConfirmed: _importFromExcel,
+                          ),
                     icon: _isImporting
                         ? const SizedBox(
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(
-                            Icons.file_upload_outlined,
-                            size: 18,
-                          ),
+                        : const Icon(Icons.file_upload_outlined, size: 18),
                     label: Text(
-                      _isImporting ? 'Đang nhập...' : 'Nhập Excel',
+                      _isImporting ? 'Đang nhập...' : 'Nhập',
                       style: const TextStyle(fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -1987,7 +1994,9 @@ class _CustomersPageState extends State<CustomersPage> {
                     style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                   if (_totalPages > 1)
-                    _buildPaginationControls(Theme.of(context).colorScheme.primary),
+                    _buildPaginationControls(
+                      Theme.of(context).colorScheme.primary,
+                    ),
                 ],
               ),
             ),

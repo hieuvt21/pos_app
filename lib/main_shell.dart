@@ -5,7 +5,8 @@ import 'package:http/http.dart' as http;
 import 'pages/home/dashboard_page.dart';
 import 'pages/ban_hang/sales_page.dart';
 import 'pages/don_hang/orders_page.dart';
-import 'pages/san_pham/products_page.dart';
+import 'pages/san_pham/danh_muc_sub.dart';
+import 'pages/san_pham/product_list_sub.dart';
 import 'pages/dich_vu/services_page.dart';
 import 'pages/khach_hang/customers_page.dart';
 import 'pages/nhan_vien/nhan_vien_page.dart';
@@ -26,17 +27,44 @@ class _MainShellState extends State<MainShell> {
   bool isSidebarExpanded = false;
   int selectedIndex = 0;
 
+  // ===== MỚI: TRẠNG THÁI ACCORDION CHO CÁC MENU CÓ MENU CON =====
+  // Menu nào đang được bung ra (mặc định RỖNG = tất cả đang ẩn/thu gọn)
+  final Set<int> _expandedIndexes = {};
+  // Mục con nào đang được chọn bên trong "Sản phẩm" (mặc định là trang Sản phẩm)
+  String _selectedProductSubId = 'san_pham';
+
   final double kExpandedWidth = 240.0;
   final double kCollapsedWidth = 75.0;
 
   // Lấy tên nhân viên đã đăng nhập thành công từ bộ nhớ AppStorage
   String userName = AppStorage.getString('user_name') ?? 'Quản Trị Viên';
 
+  // ===== DANH SÁCH MENU CHÍNH =====
+  // Mục "Sản phẩm" có thêm key 'children' -> Sidebar sẽ tự hiển thị mũi tên
+  // xổ/thu gọn cho mục này. Các mục khác không có 'children' hoạt động như cũ.
   final List<Map<String, dynamic>> menuItems = [
     {'title': 'Tổng quan', 'icon': Icons.space_dashboard_rounded},
     {'title': 'Bán hàng', 'icon': Icons.shopping_bag_rounded},
     {'title': 'Đơn hàng', 'icon': Icons.assignment_rounded},
-    {'title': 'Sản phẩm', 'icon': Icons.inventory_2_rounded},
+    {
+      'title': 'Sản phẩm',
+      'icon': Icons.inventory_2_rounded,
+      'children': <Map<String, dynamic>>[
+        {'id': 'san_pham', 'title': 'Sản phẩm', 'icon': Icons.list_alt_rounded},
+        {'id': 'danh_muc', 'title': 'Danh mục', 'icon': Icons.category_rounded},
+        {'id': 'kho', 'title': 'Kho', 'icon': Icons.warehouse_rounded},
+        {
+          'id': 'nha_cung_cap',
+          'title': 'Nhà cung cấp',
+          'icon': Icons.local_shipping_rounded,
+        },
+        {
+          'id': 'cai_dat_san_pham',
+          'title': 'Cài đặt sản phẩm',
+          'icon': Icons.settings_suggest_rounded,
+        },
+      ],
+    },
     {'title': 'Dịch vụ', 'icon': Icons.medical_services_rounded},
     {'title': 'Khách hàng', 'icon': Icons.people_rounded},
     {'title': 'Nhân viên', 'icon': Icons.person_rounded},
@@ -81,7 +109,7 @@ class _MainShellState extends State<MainShell> {
       case 2:
         return const OrdersPage();
       case 3:
-        return const ProductsPage();
+        return _buildProductsContent();
       case 4:
         return const ServicesPage();
       case 5:
@@ -95,6 +123,83 @@ class _MainShellState extends State<MainShell> {
       default:
         return const DashboardPage();
     }
+  }
+
+  // ===== MỚI: NỘI DUNG CHO TỪNG MỤC CON CỦA "SẢN PHẨM" =====
+  Widget _buildProductsContent() {
+    Widget child;
+    switch (_selectedProductSubId) {
+      case 'san_pham':
+        child = const ProductListSubPage();
+        break;
+      case 'danh_muc':
+        child = const DanhMucSubPage();
+        break;
+      case 'kho':
+        child = _buildProductPlaceholder('Kho', Icons.warehouse_rounded);
+        break;
+      case 'nha_cung_cap':
+        child = _buildProductPlaceholder(
+          'Nhà cung cấp',
+          Icons.local_shipping_rounded,
+        );
+        break;
+      case 'cai_dat_san_pham':
+        child = _buildProductPlaceholder(
+          'Cài đặt sản phẩm',
+          Icons.settings_suggest_rounded,
+        );
+        break;
+      default:
+        child = const ProductListSubPage();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildProductPlaceholder(String title, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: Colors.grey[300]),
+          const SizedBox(height: 12),
+          Text(
+            'Giao diện "$title" đang chờ triển khai...',
+            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Tiêu đề header: nếu mục đang chọn có menu con thì hiện thêm tên mục con
+  String _headerTitle() {
+    final item = menuItems[selectedIndex];
+    final rawChildren = item['children'];
+    if (rawChildren == null) return (item['title'] as String).toUpperCase();
+
+    final children = (rawChildren as List).cast<Map<String, dynamic>>();
+    Map<String, dynamic> child = children.first;
+    for (final c in children) {
+      if (c['id'] == _selectedProductSubId) {
+        child = c;
+        break;
+      }
+    }
+    return '${item['title']} • ${child['title']}'.toUpperCase();
   }
 
   @override
@@ -183,7 +288,7 @@ class _MainShellState extends State<MainShell> {
                   child: Row(
                     children: [
                       Text(
-                        menuItems[selectedIndex]['title'].toUpperCase(),
+                        _headerTitle(),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -603,17 +708,38 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  // ===== MỤC MENU CHÍNH (hỗ trợ cả loại có menu con và không có) =====
   Widget _buildSidebarItem(int index, Color activeThemeColor, bool isDark) {
-    bool isSelected = selectedIndex == index;
-    return Padding(
+    final item = menuItems[index];
+    final children = item['children'] as List<Map<String, dynamic>>?;
+    final bool isSelected = selectedIndex == index;
+    final bool isExpanded = _expandedIndexes.contains(index);
+    // Chỉ tô đậm nền cam khi mục KHÔNG có menu con (menu có con chỉ là nhóm,
+    // trạng thái "đang xem" thật sự nằm ở mục con bên dưới)
+    final bool highlightSolid = isSelected && children == null;
+
+    final parentRow = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       child: InkWell(
-        onTap: () => setState(() => selectedIndex = index),
+        onTap: () {
+          if (children != null) {
+            // Mục có menu con: CHỈ bấm để xổ/thu gọn, không điều hướng
+            setState(() {
+              if (isExpanded) {
+                _expandedIndexes.remove(index);
+              } else {
+                _expandedIndexes.add(index);
+              }
+            });
+          } else {
+            setState(() => selectedIndex = index);
+          }
+        },
         borderRadius: BorderRadius.circular(8),
         child: Container(
           height: 46,
           decoration: BoxDecoration(
-            color: isSelected ? activeThemeColor : Colors.transparent,
+            color: highlightSolid ? activeThemeColor : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: ClipRect(
@@ -623,8 +749,10 @@ class _MainShellState extends State<MainShell> {
                 SizedBox(
                   width: kCollapsedWidth - 20,
                   child: Icon(
-                    menuItems[index]['icon'],
-                    color: isSelected ? Colors.white : const Color(0xFF64748B),
+                    item['icon'],
+                    color: highlightSolid
+                        ? Colors.white
+                        : const Color(0xFF64748B),
                     size: 22,
                   ),
                 ),
@@ -634,14 +762,14 @@ class _MainShellState extends State<MainShell> {
                       opacity: isSidebarExpanded ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 150),
                       child: Text(
-                        menuItems[index]['title'],
+                        item['title'],
                         style: TextStyle(
-                          color: isSelected
+                          color: highlightSolid
                               ? Colors.white
                               : (isDark
                                     ? const Color(0xFFCBD5E1)
                                     : const Color(0xFF334155)),
-                          fontWeight: isSelected
+                          fontWeight: highlightSolid
                               ? FontWeight.bold
                               : FontWeight.w500,
                           fontSize: 14,
@@ -651,8 +779,93 @@ class _MainShellState extends State<MainShell> {
                       ),
                     ),
                   ),
+                if (children != null && isSidebarExpanded)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: Icon(
+                      isExpanded
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      size: 18,
+                      color: isDark ? Colors.white54 : const Color(0xFF94A3B8),
+                    ),
+                  ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+
+    if (children == null) return parentRow;
+
+    return Column(
+      children: [
+        parentRow,
+        if (isExpanded && isSidebarExpanded)
+          ...children.map(
+            (child) => _buildChildItem(index, child, activeThemeColor, isDark),
+          ),
+      ],
+    );
+  }
+
+  // ===== MỤC MENU CON (chỉ hiển thị khi menu cha đang được bung ra) =====
+  Widget _buildChildItem(
+    int parentIndex,
+    Map<String, dynamic> child,
+    Color activeThemeColor,
+    bool isDark,
+  ) {
+    final bool isChildSelected =
+        selectedIndex == parentIndex && _selectedProductSubId == child['id'];
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 10, right: 10, bottom: 4),
+      child: InkWell(
+        onTap: () => setState(() {
+          selectedIndex = parentIndex;
+          _selectedProductSubId = child['id'];
+        }),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.only(left: 18),
+          decoration: BoxDecoration(
+            color: isChildSelected
+                ? activeThemeColor.withValues(alpha: 0.12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                child['icon'],
+                size: 16,
+                color: isChildSelected
+                    ? activeThemeColor
+                    : const Color(0xFF94A3B8),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  child['title'],
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isChildSelected
+                        ? FontWeight.bold
+                        : FontWeight.w500,
+                    color: isChildSelected
+                        ? activeThemeColor
+                        : (isDark
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFF475569)),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                ),
+              ),
+            ],
           ),
         ),
       ),

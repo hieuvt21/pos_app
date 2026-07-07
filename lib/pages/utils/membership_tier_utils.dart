@@ -41,6 +41,8 @@ const Map<String, Map<String, dynamic>> tierIconCatalog = {
   'ac_unit_rounded': {'icon': Icons.ac_unit_rounded, 'label': 'Bông tuyết'},
   'yard_rounded': {'icon': Icons.yard_rounded, 'label': 'Sân vườn'},
   'wb_sunny_rounded': {'icon': Icons.wb_sunny_rounded, 'label': 'Mặt trời'},
+  'emergency_rounded': {'icon': Icons.emergency_rounded, 'label': 'Cấp cứu'},
+  'eco_rounded': {'icon': Icons.eco_rounded, 'label': 'Sinh thái'},
   'water_drop_rounded': {
     'icon': Icons.water_drop_rounded,
     'label': 'Giọt nước',

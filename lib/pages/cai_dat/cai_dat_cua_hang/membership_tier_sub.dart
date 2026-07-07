@@ -142,7 +142,11 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
               ),
               title: Row(
                 children: [
-                  Icon(tierIconFromKey(selectedIcon), color: previewColor, size: 22),
+                  Icon(
+                    tierIconFromKey(selectedIcon),
+                    color: previewColor,
+                    size: 22,
+                  ),
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
@@ -284,9 +288,8 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                           final color = tierColorFromHex(hex);
                           final isSelected = hex == selectedColorHex;
                           return InkWell(
-                            onTap: () => setDialogState(
-                              () => selectedColorHex = hex,
-                            ),
+                            onTap: () =>
+                                setDialogState(() => selectedColorHex = hex),
                             borderRadius: BorderRadius.circular(20),
                             child: Container(
                               width: 32,
@@ -488,9 +491,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                         ),
                         ...List.generate(_membershipTiers.length, (index) {
                           final tier = _membershipTiers[index];
-                          final tierColor = tierColorFromHex(
-                            tier['colorHex'],
-                          );
+                          final tierColor = tierColorFromHex(tier['colorHex']);
                           return TableRow(
                             decoration: const BoxDecoration(
                               border: Border(
@@ -598,7 +599,7 @@ class _MembershipTierSubPageState extends State<MembershipTierSubPage> {
                                     ),
                                     SizedBox(width: 10),
                                     Text(
-                                      'Cấu hình hạng thành viên đã được lưu trữ vĩnh viễn!',
+                                      'Cấu hình hạng thành viên đã được lưu!',
                                     ),
                                   ],
                                 ),
