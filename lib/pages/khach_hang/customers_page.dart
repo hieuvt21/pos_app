@@ -6,6 +6,9 @@ import 'package:logger/logger.dart';
 import 'package:excel/excel.dart' as excel_pkg;
 import 'package:file_picker/file_picker.dart';
 import '/services/app_config.dart';
+import '../../core/widgets/app_confirm_dialog.dart';
+import '../../core/widgets/app_input_decoration.dart';
+import '../../core/widgets/app_snackbar.dart';
 import '../cai_dat/app_storage.dart';
 import '../utils/input_formatters.dart';
 import '../utils/membership_tier_utils.dart';
@@ -230,27 +233,11 @@ class _CustomersPageState extends State<CustomersPage> {
     IconData icon = Icons.check_circle_rounded,
   }) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: backgroundColor,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-      ),
+    AppSnackbar.show(
+      context,
+      text,
+      backgroundColor: backgroundColor,
+      icon: icon,
     );
   }
 
@@ -1156,91 +1143,27 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
-  void _showDeleteConfirm(dynamic customer) {
-    showDialog(
+  Future<void> _showDeleteConfirm(dynamic customer) async {
+    await showAppDeleteConfirmDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.redAccent,
-              size: 22,
-            ),
-            SizedBox(width: 10),
-            Text('Xác nhận xóa', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: RichText(
-          text: TextSpan(
-            style: const TextStyle(fontSize: 14, color: Color(0xFF334155)),
-            children: [
-              const TextSpan(text: 'Xóa khách hàng '),
-              TextSpan(
-                text: '"${customer['ten'] ?? ''}"',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const TextSpan(text: '? Khách hàng sẽ bị xóa khỏi danh sách.'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              if (dialogContext.mounted) {
-                Navigator.pop(dialogContext);
-              }
-            },
-            child: const Text(
-              'Hủy',
-              style: TextStyle(color: Color(0xFF64748B)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (!dialogContext.mounted) return;
-              Navigator.pop(dialogContext);
-              try {
-                final res = await http.delete(
-                  Uri.parse(
-                    AppConfig().buildUrl('api/khachhang/${customer['id']}'),
-                  ),
-                );
-                if (!mounted) return;
-                if (res.statusCode == 200) {
-                  _showCustomSnackBar(
-                    'Đã xóa khách hàng "${customer['ten']}"',
-                    Theme.of(context).colorScheme.primary,
-                  );
-                  _fetchCustomers();
-                } else {
-                  throw Exception(jsonDecode(res.body)['message']);
-                }
-              } catch (e) {
-                if (!mounted) return;
-                _showCustomSnackBar(
-                  'Lỗi: ${e.toString().replaceAll('Exception: ', '')}',
-                  Colors.redAccent,
-                  icon: Icons.error_outline_rounded,
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Xóa',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
+      itemLabel: 'khách hàng',
+      itemName: customer['ten']?.toString() ?? '',
+      extraWarning: 'Khách hàng sẽ bị xóa khỏi danh sách.',
+      onConfirm: () async {
+        final res = await http.delete(
+          Uri.parse(AppConfig().buildUrl('api/khachhang/${customer['id']}')),
+        );
+        if (!mounted) return;
+        if (res.statusCode == 200) {
+          _showCustomSnackBar(
+            'Đã xóa khách hàng "${customer['ten']}"',
+            Theme.of(context).colorScheme.primary,
+          );
+          await _fetchCustomers();
+        } else {
+          throw Exception(jsonDecode(res.body)['message']);
+        }
+      },
     );
   }
 
@@ -1697,25 +1620,7 @@ class _CustomersPageState extends State<CustomersPage> {
                             child: Row(
                               children: [
                                 Expanded(
-                                  flex: 5,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8.0,
-                                    ),
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: const Text(
-                                        'ID',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF1E293B),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 14,
+                                  flex: 23,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0,
@@ -1751,7 +1656,7 @@ class _CustomersPageState extends State<CustomersPage> {
                                   ),
                                 ),
                                 Expanded(
-                                  flex: 21,
+                                  flex: 16,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0,
@@ -1787,7 +1692,7 @@ class _CustomersPageState extends State<CustomersPage> {
                                   ),
                                 ),
                                 Expanded(
-                                  flex: 18,
+                                  flex: 15,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8.0,
@@ -1848,8 +1753,6 @@ class _CustomersPageState extends State<CustomersPage> {
                               itemBuilder: (context, index) {
                                 final customer = displayedList[index];
 
-                                String idValue =
-                                    customer['id']?.toString() ?? '0';
                                 String tenValue =
                                     customer['ten']?.toString() ?? '-';
                                 String sdtValue = formatPhoneDisplay(
@@ -1893,21 +1796,15 @@ class _CustomersPageState extends State<CustomersPage> {
                                   child: Row(
                                     children: [
                                       _buildResponsiveCell(
-                                        idValue,
-                                        flex: 5,
-                                        textColor: const Color(0xFF64748B),
-                                        isBold: true,
-                                      ),
-                                      _buildResponsiveCell(
                                         tenValue,
-                                        flex: 14,
+                                        flex: 23,
                                         textColor: const Color(0xFF0F172A),
                                         isBold: true,
                                       ),
                                       _buildResponsiveCell(sdtValue, flex: 11),
                                       _buildResponsiveCell(
                                         diaChiValue,
-                                        flex: 21,
+                                        flex: 16,
                                       ),
                                       _buildResponsiveCell(
                                         displayDate,
@@ -1915,7 +1812,7 @@ class _CustomersPageState extends State<CustomersPage> {
                                       ),
                                       _buildResponsiveCell(
                                         ghiChuValue,
-                                        flex: 18,
+                                        flex: 15,
                                       ),
 
                                       Expanded(
@@ -2297,19 +2194,12 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 
   InputDecoration _dialogInputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
+    return appInputDecoration(
+      hint: label,
+      focusColor: const Color(0xFFEA580C),
+      icon: icon,
       filled: true,
       fillColor: const Color(0xFFF8FAFC),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFEA580C)),
-      ),
-    );
+    ).copyWith(labelText: label);
   }
 }

@@ -1,17 +1,16 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../../core/widgets/app_snackbar.dart';
 import '../../services/app_config.dart';
 
-class DanhMucSubPage extends StatefulWidget {
-  const DanhMucSubPage({super.key});
+class DanhMucDichVuSubPage extends StatefulWidget {
+  const DanhMucDichVuSubPage({super.key});
 
   @override
-  State<DanhMucSubPage> createState() => _DanhMucSubPageState();
+  State<DanhMucDichVuSubPage> createState() => _DanhMucDichVuSubPageState();
 }
 
-class _DanhMucSubPageState extends State<DanhMucSubPage> {
+class _DanhMucDichVuSubPageState extends State<DanhMucDichVuSubPage> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _danhMucs = [];
   final TextEditingController _searchController = TextEditingController();
@@ -34,7 +33,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
     setState(() => _isLoading = true);
     try {
       final res = await http.get(
-        Uri.parse(AppConfig().buildUrl('api/danhmucsanpham')),
+        Uri.parse(AppConfig().buildUrl('api/danhmucdicvu')),
       );
       if (res.statusCode == 200) {
         final List<dynamic> data = jsonDecode(res.body);
@@ -42,7 +41,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
           _danhMucs = data.map((e) => Map<String, dynamic>.from(e)).toList();
         });
       } else {
-        _showSnack('Không thể tải danh mục sản phẩm', isError: true);
+        _showSnack('Không thể tải danh mục dịch vụ', isError: true);
       }
     } catch (e) {
       _showSnack('Lỗi kết nối API: $e', isError: true);
@@ -63,11 +62,14 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
 
   void _showSnack(String msg, {required bool isError}) {
     if (!mounted) return;
-    if (isError) {
-      AppSnackbar.error(context, msg);
-    } else {
-      AppSnackbar.success(context, msg);
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
+        backgroundColor: isError
+            ? Colors.redAccent
+            : Theme.of(context).colorScheme.primary,
+      ),
+    );
   }
 
   // ===== DIALOG: THÊM / SỬA DANH MỤC =====
@@ -90,7 +92,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
           ),
           title: Row(
             children: [
-              Icon(Icons.category_rounded, color: themeColor, size: 22),
+              Icon(Icons.spa_rounded, color: themeColor, size: 22),
               const SizedBox(width: 10),
               Text(
                 isEditing ? 'Sửa Danh Mục' : 'Thêm Danh Mục Mới',
@@ -114,7 +116,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                   autofocus: true,
                   onChanged: (_) => setDs(() => errorText = null),
                   decoration: _inputDecoration(
-                    'VD: Đồ uống, Thời trang nam...',
+                    'VD: Chăm sóc da, Massage, Tóc...',
                     themeColor,
                     errorText: errorText,
                   ),
@@ -160,7 +162,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                             ? await http.put(
                                 Uri.parse(
                                   AppConfig().buildUrl(
-                                    'api/danhmucsanpham/${existing['id']}',
+                                    'api/danhmucdicvu/${existing['id']}',
                                   ),
                                 ),
                                 headers: {"Content-Type": "application/json"},
@@ -168,7 +170,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                               )
                             : await http.post(
                                 Uri.parse(
-                                  AppConfig().buildUrl('api/danhmucsanpham'),
+                                  AppConfig().buildUrl('api/danhmucdicvu'),
                                 ),
                                 headers: {"Content-Type": "application/json"},
                                 body: body,
@@ -188,10 +190,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                       } catch (e) {
                         setDs(() {
                           isSubmitting = false;
-                          errorText = e.toString().replaceAll(
-                            'Exception: ',
-                            '',
-                          );
+                          errorText = e.toString().replaceAll('Exception: ', '');
                         });
                       }
                     },
@@ -231,11 +230,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Row(
           children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.redAccent,
-              size: 22,
-            ),
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 22),
             SizedBox(width: 10),
             Text('Xác nhận xóa', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -250,8 +245,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const TextSpan(
-                text:
-                    '? Nếu còn sản phẩm dùng danh mục này, thao tác sẽ thất bại.',
+                text: '? Nếu còn dịch vụ dùng danh mục này, thao tác sẽ thất bại.',
               ),
             ],
           ),
@@ -259,26 +253,18 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Hủy',
-              style: TextStyle(color: Color(0xFF64748B)),
-            ),
+            child: const Text('Hủy', style: TextStyle(color: Color(0xFF64748B))),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               try {
                 final res = await http.delete(
-                  Uri.parse(
-                    AppConfig().buildUrl('api/danhmucsanpham/${dm['id']}'),
-                  ),
+                  Uri.parse(AppConfig().buildUrl('api/danhmucdicvu/${dm['id']}')),
                 );
                 if (res.statusCode == 200) {
                   await _fetchDanhMuc();
-                  _showSnack(
-                    'Đã xóa danh mục "${dm['tenDanhMuc']}"',
-                    isError: false,
-                  );
+                  _showSnack('Đã xóa danh mục "${dm['tenDanhMuc']}"', isError: false);
                 } else {
                   throw Exception(jsonDecode(res.body)['message']);
                 }
@@ -292,14 +278,9 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text(
-              'Xóa',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -319,11 +300,11 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
       children: [
         Row(
           children: [
-            Icon(Icons.category_rounded, color: themeColor, size: 22),
+            Icon(Icons.spa_rounded, color: themeColor, size: 22),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
-                'Danh Mục Sản Phẩm',
+                'Danh Mục Dịch Vụ',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -339,15 +320,8 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                 onChanged: (v) => setState(() => _searchKeyword = v),
                 decoration: InputDecoration(
                   hintText: 'Tìm danh mục...',
-                  hintStyle: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 13,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    size: 18,
-                    color: Color(0xFF94A3B8),
-                  ),
+                  hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                  prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   enabledBorder: OutlineInputBorder(
@@ -367,21 +341,13 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
               icon: const Icon(Icons.add, size: 18, color: Colors.white),
               label: const Text(
                 'Thêm danh mục',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: themeColor,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
           ],
@@ -393,11 +359,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.category_outlined,
-                        size: 48,
-                        color: Colors.grey[300],
-                      ),
+                      Icon(Icons.spa_outlined, size: 48, color: Colors.grey[300]),
                       const SizedBox(height: 12),
                       Text(
                         _danhMucs.isEmpty
@@ -425,11 +387,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                               color: themeColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Icon(
-                              Icons.category_rounded,
-                              size: 18,
-                              color: themeColor,
-                            ),
+                            child: Icon(Icons.spa_rounded, size: 18, color: themeColor),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -447,25 +405,19 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                                 if ((dm['moTa'] ?? '').toString().isNotEmpty)
                                   Text(
                                     dm['moTa'],
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                                   ),
                               ],
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF1F5F9),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              '${dm['soLuongSanPham'] ?? 0} sản phẩm',
+                              '${dm['soLuongDichVu'] ?? 0} dịch vụ',
                               style: const TextStyle(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w600,
@@ -475,16 +427,11 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                           ),
                           const SizedBox(width: 12),
                           InkWell(
-                            onTap: () =>
-                                _showFormDialog(themeColor, existing: dm),
+                            onTap: () => _showFormDialog(themeColor, existing: dm),
                             borderRadius: BorderRadius.circular(4),
                             child: const Padding(
                               padding: EdgeInsets.all(6),
-                              child: Icon(
-                                Icons.edit_note_rounded,
-                                size: 18,
-                                color: Color(0xFF64748B),
-                              ),
+                              child: Icon(Icons.edit_note_rounded, size: 18, color: Color(0xFF64748B)),
                             ),
                           ),
                           InkWell(
@@ -492,11 +439,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                             borderRadius: BorderRadius.circular(4),
                             child: const Padding(
                               padding: EdgeInsets.all(6),
-                              child: Icon(
-                                Icons.delete_outline_rounded,
-                                size: 18,
-                                color: Colors.redAccent,
-                              ),
+                              child: Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
                             ),
                           ),
                         ],
@@ -518,11 +461,7 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
     ),
   );
 
-  InputDecoration _inputDecoration(
-    String hint,
-    Color focusColor, {
-    String? errorText,
-  }) {
+  InputDecoration _inputDecoration(String hint, Color focusColor, {String? errorText}) {
     return InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),

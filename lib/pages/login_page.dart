@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/widgets/app_input_decoration.dart';
+import '../core/widgets/app_snackbar.dart';
 import '../services/app_config.dart';
 
 class LoginPage extends StatefulWidget {
@@ -215,16 +217,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _showSnackBar(String message, Color backgroundColor) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: backgroundColor,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-      ),
+    AppSnackbar.show(
+      context,
+      message,
+      backgroundColor: backgroundColor,
+      icon: backgroundColor == Colors.orange
+          ? Icons.warning_amber_rounded
+          : backgroundColor == Colors.redAccent
+          ? Icons.error_outline_rounded
+          : Icons.check_circle_rounded,
     );
   }
 
@@ -587,40 +588,27 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   InputDecoration _connInputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+    return appInputDecoration(
+      hint: hint,
+      focusColor: const Color(0xFFEA580C),
+      dense: true,
       filled: true,
       fillColor: Colors.white,
-      isDense: true,
+    ).copyWith(
+      hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
       contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: const BorderSide(color: Color(0xFFEA580C)),
-      ),
     );
   }
 
   InputDecoration _inputDecoration(String hint, IconData icon) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
-      prefixIcon: Icon(icon, color: const Color(0xFF94A3B8), size: 20),
+    return appInputDecoration(
+      hint: hint,
+      focusColor: const Color(0xFFEA580C),
+      icon: icon,
       filled: true,
       fillColor: const Color(0xFFF8FAFC),
+    ).copyWith(
       contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFEA580C)),
-      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../services/app_config.dart';
 import 'package:http/http.dart' as http;
 
@@ -35,11 +36,11 @@ class _AppSettingsSubPageState extends State<AppSettingsSubPage> {
 
   void _saveSettings(Color activeThemeColor) {
     AppConfig().updateConfig(_ipController.text, _portController.text);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Đã lưu cấu hình máy chủ: ${AppConfig().baseUrl}'),
-        backgroundColor: activeThemeColor,
-      ),
+    AppSnackbar.show(
+      context,
+      'Đã lưu cấu hình máy chủ: ${AppConfig().baseUrl}',
+      backgroundColor: activeThemeColor,
+      icon: Icons.check_circle_rounded,
     );
   }
 
@@ -134,12 +135,15 @@ class _AppSettingsSubPageState extends State<AppSettingsSubPage> {
   }
 
   void _showSnackBarSimple(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
+    AppSnackbar.show(
+      context,
+      message,
+      backgroundColor: color,
+      icon: color == Colors.redAccent
+          ? Icons.error_outline_rounded
+          : color == Colors.orange
+          ? Icons.warning_amber_rounded
+          : Icons.info_outline_rounded,
     );
   }
 

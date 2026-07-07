@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import '../../core/widgets/app_snackbar.dart';
 import '../../services/app_config.dart';
 import '../utils/input_formatters.dart';
 
@@ -101,14 +102,11 @@ class _ProductListSubPageState extends State<ProductListSubPage> {
 
   void _showSnack(String msg, {required bool isError}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: isError
-            ? Colors.redAccent
-            : Theme.of(context).colorScheme.primary,
-      ),
-    );
+    if (isError) {
+      AppSnackbar.error(context, msg);
+    } else {
+      AppSnackbar.success(context, msg);
+    }
   }
 
   // ===== TÍNH TOÁN HIỂN THỊ =====

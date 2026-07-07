@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../services/app_config.dart';
 
 // ===== DATA MODELS =====
@@ -479,13 +480,15 @@ class _VaiTroSubPageState extends State<VaiTroSubPage> {
 
   void _showSnack(String msg, Color color) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-      ),
+    AppSnackbar.show(
+      context,
+      msg,
+      backgroundColor: color,
+      icon: color == Colors.redAccent
+          ? Icons.error_outline_rounded
+          : color == Colors.orange
+          ? Icons.warning_amber_rounded
+          : Icons.check_circle_rounded,
     );
   }
 

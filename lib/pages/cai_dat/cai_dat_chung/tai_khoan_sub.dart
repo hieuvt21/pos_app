@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../../core/widgets/app_snackbar.dart';
 import '../../../services/app_config.dart';
 
 class TaiKhoanSubPage extends StatefulWidget {
@@ -77,11 +78,15 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
   void _showSnack(String msg, [Color? color]) {
     if (!mounted) return;
     final backgroundColor = color ?? Theme.of(context).colorScheme.primary;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: backgroundColor,
-      ),
+    AppSnackbar.show(
+      context,
+      msg,
+      backgroundColor: backgroundColor,
+      icon: backgroundColor == Colors.redAccent
+          ? Icons.error_outline_rounded
+          : backgroundColor == Colors.orange
+          ? Icons.warning_amber_rounded
+          : Icons.check_circle_rounded,
     );
   }
 
