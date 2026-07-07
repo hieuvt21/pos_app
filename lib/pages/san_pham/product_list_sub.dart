@@ -330,15 +330,7 @@ class _ProductListSubPageState extends State<ProductListSubPage> {
     return Row(
       children: [
         Icon(Icons.inventory_2_rounded, color: themeColor, size: 22),
-        const SizedBox(width: 10),
-        const Text(
-          'Sản Phẩm',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E293B),
-          ),
-        ),
+
         const SizedBox(width: 20),
         SizedBox(
           width: 180,
@@ -371,38 +363,54 @@ class _ProductListSubPageState extends State<ProductListSubPage> {
           ),
         ),
         const SizedBox(width: 12),
-        Container(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE2E8F0)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<int?>(
-              value: _selectedDanhMucId,
-              hint: const Text(
-                'Tất cả danh mục',
-                style: TextStyle(fontSize: 13),
-              ),
-              icon: const Icon(
-                Icons.filter_list_rounded,
-                size: 18,
-                color: Color(0xFF94A3B8),
-              ),
-              items: [
-                const DropdownMenuItem<int?>(
-                  value: null,
-                  child: Text('Tất cả danh mục '),
+        // ===== DROPDOWN DANH MỤC (đã sửa: giới hạn max width + isExpanded + ellipsis) =====
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 250, minWidth: 120),
+          child: Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int?>(
+                value: _selectedDanhMucId,
+                isExpanded:
+                    true, // <-- QUAN TRỌNG: ép dropdown co giãn theo Container, không theo text
+                hint: const Text(
+                  'Tất cả danh mục',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 13),
                 ),
-                ..._danhMucs.map(
-                  (d) => DropdownMenuItem<int?>(
-                    value: d['id'] as int,
-                    child: Text(d['tenDanhMuc'] ?? ''),
+                icon: const Icon(
+                  Icons.filter_list_rounded,
+                  size: 18,
+                  color: Color(0xFF94A3B8),
+                ),
+                items: [
+                  const DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text(
+                      'Tất cả danh mục',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
-                ),
-              ],
-              onChanged: (v) => setState(() => _selectedDanhMucId = v),
+                  ..._danhMucs.map(
+                    (d) => DropdownMenuItem<int?>(
+                      value: d['id'] as int,
+                      child: Text(
+                        d['tenDanhMuc'] ?? '',
+                        overflow: TextOverflow
+                            .ellipsis, // <-- cắt chữ trong menu item khi quá dài
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _selectedDanhMucId = v),
+              ),
             ),
           ),
         ),

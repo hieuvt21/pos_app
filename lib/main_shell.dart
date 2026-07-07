@@ -723,7 +723,6 @@ class _MainShellState extends State<MainShell> {
       child: InkWell(
         onTap: () {
           if (children != null) {
-            // Mục có menu con: CHỈ bấm để xổ/thu gọn, không điều hướng
             setState(() {
               if (isExpanded) {
                 _expandedIndexes.remove(index);
@@ -742,55 +741,66 @@ class _MainShellState extends State<MainShell> {
             color: highlightSolid ? activeThemeColor : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: ClipRect(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: kCollapsedWidth - 20,
-                  child: Icon(
-                    item['icon'],
-                    color: highlightSolid
-                        ? Colors.white
-                        : const Color(0xFF64748B),
-                    size: 22,
+          // ĐỔI ClipRect -> OverflowBox giống hệt cách làm ở phần Logo/Tiêu đề header,
+          // để Row luôn được layout với bề rộng "mục tiêu" (kExpandedWidth) thay vì
+          // bề rộng container đang animate dở dang, tránh bị overflow trong lúc hover.
+          child: OverflowBox(
+            minWidth: 0,
+            maxWidth: kExpandedWidth,
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: kExpandedWidth,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: kCollapsedWidth - 20,
+                    child: Icon(
+                      item['icon'],
+                      color: highlightSolid
+                          ? Colors.white
+                          : const Color(0xFF64748B),
+                      size: 22,
+                    ),
                   ),
-                ),
-                if (isSidebarExpanded)
-                  Expanded(
-                    child: AnimatedOpacity(
-                      opacity: isSidebarExpanded ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 150),
-                      child: Text(
-                        item['title'],
-                        style: TextStyle(
-                          color: highlightSolid
-                              ? Colors.white
-                              : (isDark
-                                    ? const Color(0xFFCBD5E1)
-                                    : const Color(0xFF334155)),
-                          fontWeight: highlightSolid
-                              ? FontWeight.bold
-                              : FontWeight.w500,
-                          fontSize: 14,
+                  if (isSidebarExpanded)
+                    Expanded(
+                      child: AnimatedOpacity(
+                        opacity: isSidebarExpanded ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 150),
+                        child: Text(
+                          item['title'],
+                          style: TextStyle(
+                            color: highlightSolid
+                                ? Colors.white
+                                : (isDark
+                                      ? const Color(0xFFCBD5E1)
+                                      : const Color(0xFF334155)),
+                            fontWeight: highlightSolid
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
                       ),
                     ),
-                  ),
-                if (children != null && isSidebarExpanded)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: Icon(
-                      isExpanded
-                          ? Icons.expand_less_rounded
-                          : Icons.expand_more_rounded,
-                      size: 18,
-                      color: isDark ? Colors.white54 : const Color(0xFF94A3B8),
+                  if (children != null && isSidebarExpanded)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: Icon(
+                        isExpanded
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                        size: 18,
+                        color: isDark
+                            ? Colors.white54
+                            : const Color(0xFF94A3B8),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
