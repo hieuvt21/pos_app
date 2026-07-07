@@ -54,7 +54,9 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
     if (_searchKeyword.trim().isEmpty) return _danhMucs;
     final kw = _searchKeyword.trim().toLowerCase();
     return _danhMucs
-        .where((d) => (d['tenDanhMuc'] ?? '').toString().toLowerCase().contains(kw))
+        .where(
+          (d) => (d['tenDanhMuc'] ?? '').toString().toLowerCase().contains(kw),
+        )
         .toList();
   }
 
@@ -63,10 +65,9 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor:
-            isError ? Colors.redAccent : Theme.of(context).colorScheme.primary,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
+        backgroundColor: isError
+            ? Colors.redAccent
+            : Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -86,14 +87,19 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDs) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           title: Row(
             children: [
               Icon(Icons.category_rounded, color: themeColor, size: 22),
               const SizedBox(width: 10),
               Text(
                 isEditing ? 'Sửa Danh Mục' : 'Thêm Danh Mục Mới',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ],
           ),
@@ -132,7 +138,10 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
           actions: [
             TextButton(
               onPressed: isSubmitting ? null : () => Navigator.pop(context),
-              child: const Text('Hủy', style: TextStyle(color: Color(0xFF64748B))),
+              child: const Text(
+                'Hủy',
+                style: TextStyle(color: Color(0xFF64748B)),
+              ),
             ),
             ElevatedButton(
               onPressed: isSubmitting
@@ -181,14 +190,19 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                       } catch (e) {
                         setDs(() {
                           isSubmitting = false;
-                          errorText = e.toString().replaceAll('Exception: ', '');
+                          errorText = e.toString().replaceAll(
+                            'Exception: ',
+                            '',
+                          );
                         });
                       }
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: themeColor,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               child: isSubmitting
                   ? const SizedBox(
@@ -219,7 +233,11 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 22),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.redAccent,
+              size: 22,
+            ),
             SizedBox(width: 10),
             Text('Xác nhận xóa', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -234,7 +252,8 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const TextSpan(
-                text: '? Nếu còn sản phẩm dùng danh mục này, thao tác sẽ thất bại.',
+                text:
+                    '? Nếu còn sản phẩm dùng danh mục này, thao tác sẽ thất bại.',
               ),
             ],
           ),
@@ -242,18 +261,26 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy', style: TextStyle(color: Color(0xFF64748B))),
+            child: const Text(
+              'Hủy',
+              style: TextStyle(color: Color(0xFF64748B)),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               try {
                 final res = await http.delete(
-                  Uri.parse(AppConfig().buildUrl('api/danhmucsanpham/${dm['id']}')),
+                  Uri.parse(
+                    AppConfig().buildUrl('api/danhmucsanpham/${dm['id']}'),
+                  ),
                 );
                 if (res.statusCode == 200) {
                   await _fetchDanhMuc();
-                  _showSnack('Đã xóa danh mục "${dm['tenDanhMuc']}"', isError: false);
+                  _showSnack(
+                    'Đã xóa danh mục "${dm['tenDanhMuc']}"',
+                    isError: false,
+                  );
                 } else {
                   throw Exception(jsonDecode(res.body)['message']);
                 }
@@ -267,9 +294,14 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Xóa',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -309,8 +341,15 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                 onChanged: (v) => setState(() => _searchKeyword = v),
                 decoration: InputDecoration(
                   hintText: 'Tìm danh mục...',
-                  hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF94A3B8)),
+                  hintStyle: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 13,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 18,
+                    color: Color(0xFF94A3B8),
+                  ),
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   enabledBorder: OutlineInputBorder(
@@ -330,13 +369,21 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
               icon: const Icon(Icons.add, size: 18, color: Colors.white),
               label: const Text(
                 'Thêm danh mục',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: themeColor,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ],
@@ -348,7 +395,11 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.category_outlined, size: 48, color: Colors.grey[300]),
+                      Icon(
+                        Icons.category_outlined,
+                        size: 48,
+                        color: Colors.grey[300],
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         _danhMucs.isEmpty
@@ -398,7 +449,10 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                                 if ((dm['moTa'] ?? '').toString().isNotEmpty)
                                   Text(
                                     dm['moTa'],
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
                                   ),
                               ],
                             ),
@@ -423,7 +477,8 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
                           ),
                           const SizedBox(width: 12),
                           InkWell(
-                            onTap: () => _showFormDialog(themeColor, existing: dm),
+                            onTap: () =>
+                                _showFormDialog(themeColor, existing: dm),
                             borderRadius: BorderRadius.circular(4),
                             child: const Padding(
                               padding: EdgeInsets.all(6),
@@ -457,13 +512,13 @@ class _DanhMucSubPageState extends State<DanhMucSubPage> {
   }
 
   Widget _label(String text) => Text(
-        text,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF475569),
-        ),
-      );
+    text,
+    style: const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.bold,
+      color: Color(0xFF475569),
+    ),
+  );
 
   InputDecoration _inputDecoration(
     String hint,
