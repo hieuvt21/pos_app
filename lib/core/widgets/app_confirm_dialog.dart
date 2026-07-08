@@ -73,7 +73,10 @@ Future<void> showAppConfirmDialog({
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Ở lại', style: TextStyle(color: Color(0xFF64748B))),
+          child: const Text(
+            'Ở lại',
+            style: TextStyle(color: Color(0xFF64748B)),
+          ),
         ),
         ElevatedButton(
           onPressed: () {
@@ -149,7 +152,10 @@ Future<void> showAppDeleteConfirmDialog({
               await onConfirm();
             } catch (e) {
               if (context.mounted) {
-                AppSnackbar.error(context, AppSnackbar.cleanExceptionMessage(e));
+                AppSnackbar.error(
+                  context,
+                  AppSnackbar.cleanExceptionMessage(e),
+                );
               }
             }
           },
@@ -160,7 +166,10 @@ Future<void> showAppDeleteConfirmDialog({
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          child: const Text('Xóa', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Xóa',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     ),

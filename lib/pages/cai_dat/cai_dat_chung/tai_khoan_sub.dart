@@ -1,6 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:pos_app/core/widgets/app_confirm_dialog.dart';
+import '../../../core/widgets/app_input_decoration.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../services/app_config.dart';
 
@@ -30,7 +34,6 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
     super.dispose();
   }
 
-  // ===== API CALLS =====
   Future<void> _fetchAll() async {
     setState(() => _isLoading = true);
     await Future.wait([_fetchRoles(), _fetchAccounts()]);
@@ -44,9 +47,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
         final List<dynamic> data = jsonDecode(res.body);
         _roles = data.map((e) => Map<String, dynamic>.from(e)).toList();
       }
-    } catch (_) {
-      // Nếu lỗi tải vai trò, danh sách gán quyền sẽ trống nhưng không chặn tải tài khoản
-    }
+    } catch (_) {}
   }
 
   Future<void> _fetchAccounts() async {
@@ -58,10 +59,12 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
         final List<dynamic> data = jsonDecode(res.body);
         _accounts = data.map((e) => Map<String, dynamic>.from(e)).toList();
       } else {
-        _showSnack('Không thể tải danh sách tài khoản', Colors.redAccent);
+        if (!mounted) return;
+        AppSnackbar.error(context, 'Không thể tải danh sách tài khoản');
       }
     } catch (e) {
-      _showSnack('Lỗi kết nối API: $e', Colors.redAccent);
+      if (!mounted) return;
+      AppSnackbar.error(context, 'Lỗi kết nối API: $e');
     }
   }
 
@@ -75,22 +78,6 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
     }).toList();
   }
 
-  void _showSnack(String msg, [Color? color]) {
-    if (!mounted) return;
-    final backgroundColor = color ?? Theme.of(context).colorScheme.primary;
-    AppSnackbar.show(
-      context,
-      msg,
-      backgroundColor: backgroundColor,
-      icon: backgroundColor == Colors.redAccent
-          ? Icons.error_outline_rounded
-          : backgroundColor == Colors.orange
-          ? Icons.warning_amber_rounded
-          : Icons.check_circle_rounded,
-    );
-  }
-
-  // ===== DIALOG: THÊM TÀI KHOẢN =====
   void _showCreateDialog(Color themeColor) {
     final userController = TextEditingController();
     final passController = TextEditingController();
@@ -126,56 +113,54 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _dlgLabel('Tên đăng nhập (*)'),
+                  appFieldLabel('Tên đăng nhập (*)'),
                   const SizedBox(height: 6),
                   TextField(
                     controller: userController,
                     autofocus: true,
                     onChanged: (_) => setDs(() => errorText = null),
-                    decoration: _dlgInputDecoration(
-                      'VD: nhanvien01',
-                      Icons.person_outline,
-                      themeColor,
+                    decoration: appInputDecoration(
+                      hint: 'VD: nhanvien01',
+                      icon: Icons.person_outline,
+                      focusColor: themeColor,
                       errorText: errorText,
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _dlgLabel('Mật khẩu (*)'),
+                  appFieldLabel('Mật khẩu (*)'),
                   const SizedBox(height: 6),
                   TextField(
                     controller: passController,
                     obscureText: obscure,
-                    decoration:
-                        _dlgInputDecoration(
-                          'Tối thiểu 6 ký tự',
-                          Icons.lock_outline,
-                          themeColor,
-                        ).copyWith(
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              obscure ? Icons.visibility_off : Icons.visibility,
-                              size: 18,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                            onPressed: () => setDs(() => obscure = !obscure),
-                          ),
+                    decoration: appInputDecoration(
+                      hint: 'Tối thiểu 6 ký tự',
+                      icon: Icons.lock_outline,
+                      focusColor: themeColor,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscure ? Icons.visibility_off : Icons.visibility,
+                          size: 18,
+                          color: const Color(0xFF94A3B8),
                         ),
+                        onPressed: () => setDs(() => obscure = !obscure),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 14),
-                  _dlgLabel('Họ và tên (*)'),
+                  appFieldLabel('Họ và tên (*)'),
                   const SizedBox(height: 6),
                   TextField(
                     controller: nameController,
-                    decoration: _dlgInputDecoration(
-                      'VD: Nguyễn Văn A',
-                      Icons.badge_outlined,
-                      themeColor,
+                    decoration: appInputDecoration(
+                      hint: 'VD: Nguyễn Văn A',
+                      icon: Icons.badge_outlined,
+                      focusColor: themeColor,
                     ),
                   ),
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      _dlgLabel('Kích hoạt tài khoản ngay'),
+                      appFieldLabel('Kích hoạt tài khoản ngay'),
                       const Spacer(),
                       Switch(
                         value: isActive,
@@ -185,7 +170,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  _dlgLabel('Gán vai trò'),
+                  appFieldLabel('Gán vai trò'),
                   const SizedBox(height: 8),
                   _buildRoleChipPicker(
                     themeColor: themeColor,
@@ -249,20 +234,22 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                           }),
                         );
                         if (res.statusCode == 200) {
-                          if (context.mounted) Navigator.pop(context);
+                          if (!context.mounted) return;
+                          Navigator.pop(context);
                           await _fetchAccounts();
-                          if (mounted) setState(() {});
-                          _showSnack('Đã tạo tài khoản "$username"!');
+                          if (!mounted) return;
+                          setState(() {});
+                          AppSnackbar.success(
+                            context,
+                            'Đã tạo tài khoản "$username"!',
+                          );
                         } else {
                           throw Exception(jsonDecode(res.body)['message']);
                         }
                       } catch (e) {
                         setDs(() {
                           isSubmitting = false;
-                          errorText = e.toString().replaceAll(
-                            'Exception: ',
-                            '',
-                          );
+                          errorText = AppSnackbar.cleanExceptionMessage(e);
                         });
                       }
                     },
@@ -293,7 +280,6 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
     );
   }
 
-  // ===== DIALOG: SỬA TÀI KHOẢN =====
   void _showEditDialog(Map<String, dynamic> account, Color themeColor) {
     final isAdminAccount = account['tenDangNhap'] == 'admin';
     final nameController = TextEditingController(text: account['hoTen']);
@@ -372,58 +358,56 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                         ],
                       ),
                     ),
-                  _dlgLabel('Tên đăng nhập'),
+                  appFieldLabel('Tên đăng nhập'),
                   const SizedBox(height: 6),
                   TextField(
                     enabled: false,
                     controller: TextEditingController(
                       text: account['tenDangNhap'],
                     ),
-                    decoration: _dlgInputDecoration(
-                      '',
-                      Icons.person_outline,
-                      themeColor,
+                    decoration: appInputDecoration(
+                      hint: '',
+                      icon: Icons.person_outline,
+                      focusColor: themeColor,
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _dlgLabel('Họ và tên (*)'),
+                  appFieldLabel('Họ và tên (*)'),
                   const SizedBox(height: 6),
                   TextField(
                     controller: nameController,
                     onChanged: (_) => setDs(() => errorText = null),
-                    decoration: _dlgInputDecoration(
-                      'VD: Nguyễn Văn A',
-                      Icons.badge_outlined,
-                      themeColor,
+                    decoration: appInputDecoration(
+                      hint: 'VD: Nguyễn Văn A',
+                      icon: Icons.badge_outlined,
+                      focusColor: themeColor,
                       errorText: errorText,
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _dlgLabel('Đặt lại mật khẩu (để trống nếu không đổi)'),
+                  appFieldLabel('Đặt lại mật khẩu (để trống nếu không đổi)'),
                   const SizedBox(height: 6),
                   TextField(
                     controller: newPassController,
                     obscureText: obscure,
-                    decoration:
-                        _dlgInputDecoration(
-                          'Mật khẩu mới...',
-                          Icons.lock_reset_rounded,
-                          themeColor,
-                        ).copyWith(
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              obscure ? Icons.visibility_off : Icons.visibility,
-                              size: 18,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                            onPressed: () => setDs(() => obscure = !obscure),
-                          ),
+                    decoration: appInputDecoration(
+                      hint: 'Mật khẩu mới...',
+                      icon: Icons.lock_reset_rounded,
+                      focusColor: themeColor,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscure ? Icons.visibility_off : Icons.visibility,
+                          size: 18,
+                          color: const Color(0xFF94A3B8),
                         ),
+                        onPressed: () => setDs(() => obscure = !obscure),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      _dlgLabel('Trạng thái hoạt động'),
+                      appFieldLabel('Trạng thái hoạt động'),
                       const Spacer(),
                       Switch(
                         value: isActive,
@@ -435,7 +419,7 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  _dlgLabel('Vai trò được gán'),
+                  appFieldLabel('Vai trò được gán'),
                   const SizedBox(height: 8),
                   _buildRoleChipPicker(
                     themeColor: themeColor,
@@ -498,20 +482,22 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
                           }),
                         );
                         if (res.statusCode == 200) {
-                          if (context.mounted) Navigator.pop(context);
+                          if (!context.mounted) return;
+                          Navigator.pop(context);
                           await _fetchAccounts();
-                          if (mounted) setState(() {});
-                          _showSnack('Đã cập nhật tài khoản!');
+                          if (!mounted) return;
+                          setState(() {});
+                          AppSnackbar.success(
+                            context,
+                            'Đã cập nhật tài khoản!',
+                          );
                         } else {
                           throw Exception(jsonDecode(res.body)['message']);
                         }
                       } catch (e) {
                         setDs(() {
                           isSubmitting = false;
-                          errorText = e.toString().replaceAll(
-                            'Exception: ',
-                            '',
-                          );
+                          errorText = AppSnackbar.cleanExceptionMessage(e);
                         });
                       }
                     },
@@ -542,83 +528,30 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
     );
   }
 
-  // ===== DIALOG: XÓA TÀI KHOẢN =====
   void _showDeleteConfirm(Map<String, dynamic> account) {
-    showDialog(
+    showAppDeleteConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Row(
-          children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.redAccent,
-              size: 22,
-            ),
-            SizedBox(width: 10),
-            Text('Xác nhận xóa', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: RichText(
-          text: TextSpan(
-            style: const TextStyle(fontSize: 14, color: Color(0xFF334155)),
-            children: [
-              const TextSpan(text: 'Xóa tài khoản '),
-              TextSpan(
-                text: '"${account['tenDangNhap']}"',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const TextSpan(text: '? Thao tác này không thể hoàn tác.'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Hủy',
-              style: TextStyle(color: Color(0xFF64748B)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                final res = await http.delete(
-                  Uri.parse(
-                    AppConfig().buildUrl('api/accounts/${account['id']}'),
-                  ),
-                );
-                if (res.statusCode == 200) {
-                  await _fetchAccounts();
-                  if (mounted) setState(() {});
-                  _showSnack('Đã xóa tài khoản "${account['tenDangNhap']}"');
-                } else {
-                  throw Exception(jsonDecode(res.body)['message']);
-                }
-              } catch (e) {
-                _showSnack('Lỗi: $e', Colors.redAccent);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Xóa',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
+      itemLabel: 'tài khoản',
+      itemName: account['tenDangNhap']?.toString() ?? '',
+      onConfirm: () async {
+        final res = await http.delete(
+          Uri.parse(AppConfig().buildUrl('api/accounts/${account['id']}')),
+        );
+        if (res.statusCode == 200) {
+          await _fetchAccounts();
+          if (!mounted) return;
+          setState(() {});
+          AppSnackbar.success(
+            context,
+            'Đã xóa tài khoản "${account['tenDangNhap']}"',
+          );
+        } else {
+          throw Exception(jsonDecode(res.body)['message']);
+        }
+      },
     );
   }
 
-  // ===== WIDGET CHỌN VAI TRÒ DẠNG CHIP (dùng chung cho 2 dialog) =====
   Widget _buildRoleChipPicker({
     required Color themeColor,
     required Set<int> selectedRoleIds,
@@ -673,7 +606,6 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
     );
   }
 
-  // ===== BUILD =====
   @override
   Widget build(BuildContext context) {
     final themeColor = Theme.of(context).colorScheme.primary;
@@ -1041,50 +973,6 @@ class _TaiKhoanSubPageState extends State<TaiKhoanSubPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _dlgLabel(String text) => Text(
-    text,
-    style: const TextStyle(
-      fontSize: 13,
-      fontWeight: FontWeight.bold,
-      color: Color(0xFF475569),
-    ),
-  );
-
-  InputDecoration _dlgInputDecoration(
-    String hint,
-    IconData icon,
-    Color focusColor, {
-    String? errorText,
-  }) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-      prefixIcon: Icon(icon, size: 18, color: const Color(0xFF94A3B8)),
-      errorText: errorText,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      enabledBorder: OutlineInputBorder(
-        borderSide: BorderSide(
-          color: errorText != null ? Colors.red : const Color(0xFFE2E8F0),
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderSide: BorderSide(color: focusColor, width: 1.5),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.red),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
-        borderRadius: BorderRadius.circular(8),
       ),
     );
   }
